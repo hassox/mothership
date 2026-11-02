@@ -3,7 +3,7 @@
 
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout } from "herdr";
+import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout, nextCommand, notify } from "herdr";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -54,6 +54,9 @@ const sortOf = () => SORTS.find((s) => s.id === shared("agents.sort")) ?? SORTS[
 const MODES = [
   { id: "off", label: "Off", icon: "minus" },
   { id: "follow", label: "Follow selected space", icon: "folder" },
+  { id: "tree", label: "Tree in Spaces", icon: "git-branch" },
+  { id: "dots", label: "Dots in Spaces", icon: "circle-check" },
+  { id: "tab", label: "Agents tab", icon: "files" },
 ];
 const modeOf = () => MODES.find((m) => m.id === shared("nested.mode")) ?? MODES.find((m) => m.id === "follow");
 const SECTION = { 4: "Needs you", 3: "Done", 2: "Working", 1: "Idle" };
@@ -83,6 +86,18 @@ export default class Agents extends View {
     if (!this.pendingPins.length) localStorage.removeItem("pins");
     this.migratingPins = new Set();
     cx.timer.every(30000, (cx) => cx.notify());
+    cx.spawn(async (cx) => {
+      for (;;) {
+        const command = await nextCommand();
+        const at = MODES.indexOf(modeOf());
+        const next = command === "next" ? MODES[(at + 1) % MODES.length] : MODES.find((m) => m.id === command);
+        if (next) {
+          setShared("nested.mode", next.id);
+          notify({ title: `Sub-agents: ${next.label}`, timeout: 2000 });
+        }
+        cx.notify();
+      }
+    });
   }
 
   // Stamps agents whose state changed. Done and idle count as one: looking at a
