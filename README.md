@@ -16,7 +16,7 @@ Herdr must be open. The script:
 3. Points that layout at the mods here, in place of the Herdr mods they were cloned from.
 4. Switches the window to `nested` and checks each mod.
 
-`ctrl-shift-l` switches layouts, so `main` is one key away.
+`layout.switch` (`cmd-shift-l` on macOS) switches layouts, so `main` is one key away.
 
 After you edit a mod here, run `install.sh` again. Herdr does not see edits
 made through a link; re-making the link reloads the mod.
