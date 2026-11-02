@@ -3,9 +3,10 @@
 // its first terminal is in now, only where unusual: branch, ahead/behind. Agent state lives in the agents list, not here. Click to
 // switch, right-click for its menu, drag to reorder.
 
-import { View, div, image, svg } from "gpui-kit";
+import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { spaces, machines, panes, terminals, run, openOverlay, closeOverlay, props, exec, hc, theme, settings, shared, setShared, watchFolder, window, layout } from "herdr";
+import { spaces, machines, panes, terminals, run, openOverlay, closeOverlay, props, exec, hc, theme, shared, setShared, watchFolder, window, layout } from "herdr";
+import { modeOf, kidStatus, topStatus, nameOf, sayOf, crews, icon, badge, head } from "./subagents.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -45,61 +46,17 @@ export function tone(t, status) {
   return t[status] ?? t.unknown;
 }
 
-const RANK = { blocked: 4, working: 2, idle: 1 };
-const prefix = (addr) => (addr.includes("/") ? `${addr.split("/")[0]}/` : "");
-const statusOf = (k) => (k.status === "error" ? "blocked" : k.status === "done" ? "idle" : k.status ?? null);
-const topStatus = (subs) => subs.map((s) => statusOf(s.k)).reduce((m, s) => ((RANK[s] ?? 0) > (RANK[m] ?? 0) ? s : m), null);
-const nameOf = (k) => k.name || k.template || k.program?.name || k.address;
-const sayOf = (k) => (typeof k.report === "string" ? k.report : k.report?.msg) ?? "";
 const NESTED = ["tree", "dots", "tab"];
-const mode = () => shared("nested.mode");
-
-function crew(all, space) {
-  const pre = prefix(space);
-  const live = all.filter((k) => k.state === "live");
-  const up = (k) => (k.parent.includes("/") ? k.parent : prefix(k.address) + k.parent);
-  const walk = (addr, lead) => {
-    const kids = live.filter((k) => k.parent && !k.labels?.["herdr.space"] && up(k) === addr);
-    return kids.flatMap((k, i) => {
-      const last = i === kids.length - 1;
-      return [{ k, lines: [...lead, last ? "└" : "├"] }, ...walk(k.address, [...lead, last ? "" : "│"])];
-    });
-  };
-  return live
-    .filter((k) => prefix(k.address) === pre && k.labels?.["herdr.space"] === space.slice(pre.length))
-    .flatMap((root) => walk(root.address, []));
-}
-
-function icon(p, size, color) {
-  if (!p?.icon) return null;
-  return p.tint ? svg(p.icon).size(size).flex_none().text_color(color) : image(p.icon).w(size).h(size).flex_none();
-}
-
-function badge(t, status) {
-  if (status === "working") return svg("mods/workspace-chrome/spinner.svg").size(12).mx(1).flex_none().text_color(t.working).spin(900);
-  if (status === "blocked") return div().size(14).flex_none().rounded(4).bg(t.blocked + "26").text_size(10.5).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
-  if (status === "idle") return div().size(7).mx(3).flex_none().rounded(4).border(1.5).border_color(t.idle ?? t.dim);
-  return div().size(5).mx(4).flex_none().rounded(3).bg(t.dim);
-}
 
 function dot(t, status) {
   const d = div().size(7).flex_none().rounded(4);
-  if (status === "working") return d.bg(t.working);
-  if (status === "blocked") return d.bg(t.blocked);
-  if (status === "idle") return d.border(1.5).border_color(t.idle ?? t.dim);
-  return d.bg(t.dim);
+  return status === "idle" ? d.border(1.5).border_color(t.idle ?? t.dim) : d.bg(tone(t, status));
 }
 
 export default class Spaces extends View {
   init(_props, cx) {
-    this.open = new Set();
-    this.tail = {};
     if (props()?.card) return;
-    if (props()?.crew) {
-      cx.timer.every(5000, (cx) => this.readTails(cx));
-      this.readTails(cx);
-      return;
-    }
+    this.open = new Set();
     this.git = {}; // where() -> { name, branch, ahead, behind, repo, linked }, null: not a repo
     this.checked = {}; // where() -> when it was last looked at
     this.unsure = new Set(); // where()s git couldn't answer for (a machine away)
@@ -298,32 +255,21 @@ export default class Spaces extends View {
     });
   }
 
-  readTails(cx) {
-    cx.spawn(async (cx) => {
-      for (const { k } of crew(terminals(), props().crew)) {
-        const r = await hc(["read", "--lines", "0", k.address]);
-        this.tail[k.address] = r.stdout.split("\n").filter((l) => l.trim() && !/^[─━═\s]+$/.test(l)).slice(-8);
-      }
-      cx.notify();
-    });
-  }
-
   openCrew(w) {
     const tabs = new Set(w.tabs.map((x) => x.id));
-    const pane = panes().find((p) => p.mod === "nested-spaces" && tabs.has(p.tab));
+    const pane = panes().find((p) => p.mod === "nested-crew" && tabs.has(p.tab));
     if (pane) run("pane.focus", { pane: pane.pane });
-    else run("tab.new", { space: w.id, name: "Agents", mod: "nested-spaces", props: { crew: w.id } });
+    else run("tab.new", { space: w.id, name: "Agents", mod: "nested-crew", props: { space: w.id } });
   }
 
   nest(w, t) {
     const subs = this.subs[w.id] ?? [];
     if (!subs.length) return null;
     const top = topStatus(subs);
-    const m = mode();
-    if (m === "tree") {
+    const chip = h_flex().id(`nest-${w.id}`).flex_none().h(18).items_center().rounded(4).hover((s) => s.bg(t.hover));
+    if (this.mode === "tree") {
       const open = this.open.has(w.id);
-      return h_flex().id(`nest-${w.id}`).flex_none().h(18).px(3).gap(4).items_center().rounded(4).text_size(11).text_color(t.muted)
-        .hover((s) => s.bg(t.hover).text_color(t.foreground))
+      return chip.px(3).gap(4).text_size(11).text_color(t.muted)
         .on_click((_e, cx) => {
           open ? this.open.delete(w.id) : this.open.add(w.id);
           cx.notify();
@@ -331,26 +277,20 @@ export default class Spaces extends View {
         .child(open ? svg("mods/workspace-chrome/chevron-down.svg").size(11).flex_none() : div().child(String(subs.length)))
         .when(!open, (el) => el.child(badge(t, top)));
     }
-    if (m === "dots") {
-      return h_flex().id(`nest-${w.id}`).flex_none().h(18).px(3).gap(3).items_center().rounded(4)
-        .hover((s) => s.bg(t.hover))
+    if (this.mode === "dots") {
+      return chip.px(3).gap(3)
         .on_click(() => openOverlay({ mod: "nested-spaces", kind: "popup", width: 360, height: Math.min(440, 52 + 50 * subs.length), props: { card: w.id } }))
-        .children(subs.length > 6 ? [div().text_size(11).text_color(t.muted).child(String(subs.length)), badge(t, top)] : subs.map((s) => dot(t, statusOf(s.k))));
+        .children(subs.length > 6 ? [div().text_size(11).text_color(t.muted).child(String(subs.length)), badge(t, top)] : subs.map((s) => dot(t, kidStatus(s.t))));
     }
-    if (m === "tab") {
-      const color = t[top] ?? t.dim;
-      return div().id(`nest-${w.id}`).flex_none().h(18).min_w(20).px(6).rounded(9).border(1).border_color(color + "88")
-        .text_size(11).font_semibold().text_color(t[top] ?? t.muted).flex().items_center().justify_center()
-        .hover((s) => s.bg(t.hover))
-        .on_click(() => this.openCrew(w))
-        .child(String(subs.length));
-    }
-    return null;
+    return chip.min_w(20).px(6).rounded(9).border(1).border_color(tone(t, top) + "88").justify_center()
+      .text_size(11).font_semibold().text_color(tone(t, top))
+      .on_click(() => this.openCrew(w))
+      .child(String(subs.length));
   }
 
   subRows({ w, tree }, t) {
-    if (mode() !== "tree" || !this.open.has(w.id)) return [];
-    return (this.subs[w.id] ?? []).map(({ k, lines }) => {
+    if (this.mode !== "tree" || !this.open.has(w.id)) return [];
+    return (this.subs[w.id] ?? []).map(({ t: k, lines }) => {
       const pic = icon(k.program, 14, t.foreground);
       return h_flex()
         .id(`sub-${k.address}`)
@@ -368,59 +308,32 @@ export default class Spaces extends View {
           .when(l === "└" || l === "├", (el) => el.border_b(1.5).rounded_bl(6))))
         .when(Boolean(pic), (el) => el.child(div().mr(8).child(pic)))
         .child(div().flex_1().truncate().text_color(t.muted).child(nameOf(k)))
-        .child(badge(t, statusOf(k)));
+        .child(badge(t, kidStatus(k)));
     });
   }
 
-  head(t, k) {
-    const pic = icon(k.program, 14, t.foreground);
-    return h_flex().gap(8).items_center()
-      .when(Boolean(pic), (el) => el.child(pic))
-      .child(div().flex_1().min_w(0).truncate().child(nameOf(k)))
-      .when(k.turn != null, (el) => el.child(div().flex_none().text_size(11).text_color(t.dim).child(`turn ${k.turn}`)))
-      .child(badge(t, statusOf(k)));
-  }
-
   card(t, id) {
-    const subs = crew(terminals(), id);
+    const subs = crews(terminals())[id] ?? [];
     return v_flex().size_full().p(6).bg(t.popover).text_size(13)
       .child(h_flex().h(28).px(8).gap(8).items_center()
         .child(div().flex_1().truncate().font_semibold().child(spaces().find((s) => s.id === id)?.name ?? id))
         .child(div().text_size(11.5).text_color(t.dim).child(`${subs.length} sub-agents`)))
-      .child(v_flex().id("card").flex_1().min_h(0).overflow_y_scrollbar().children(subs.map(({ k }) => v_flex()
-        .id(`line-${k.address}`)
-        .px(8)
-        .py(6)
-        .gap(2)
-        .rounded(6)
-        .hover((s) => s.bg(t.hover))
-        .on_click(() => {
-          run("terminal.peek", { terminal: k.address });
-          closeOverlay(props().overlay);
-        })
-        .child(this.head(t, k))
-        .when(Boolean(sayOf(k)), (el) => el.child(div().truncate().text_size(12).text_color(t.muted).child(sayOf(k)))))));
-  }
-
-  crewView(t, id) {
-    const subs = crew(terminals(), id);
-    return v_flex().size_full().bg(t.background).p(14).gap(10).text_size(13)
-      .child(div().font_semibold().child(`${subs.length} sub-agents in ${spaces().find((s) => s.id === id)?.name ?? id}`))
-      .when(!subs.length, (el) => el.child(div().text_color(t.dim).child("No sub-agents are running in this space.")))
-      .child(v_flex().id("crew").flex_1().min_h(0).gap(10).overflow_y_scrollbar().children(subs.map(({ k }) => v_flex()
-        .id(`crew-${k.address}`)
-        .p(12)
-        .gap(6)
-        .rounded(8)
-        .bg(t.surface)
-        .border(1)
-        .border_color(t.border)
-        .hover((s) => s.border_color(t.input))
-        .on_click(() => run("terminal.peek", { terminal: k.address }))
-        .child(this.head(t, k))
-        .when(Boolean(sayOf(k)), (el) => el.child(div().text_size(12).text_color(t.muted).child(sayOf(k))))
-        .child(v_flex().p(8).rounded(6).bg(t.canvas).font_family(settings().font_family).text_size(11.5).text_color(t.muted)
-          .children((this.tail[k.address] ?? []).map((l) => div().truncate().child(l)))))));
+      .child(v_flex().id("card").flex_1().min_h(0).overflow_y_scrollbar().children(subs.map(({ t: k }) => {
+        const say = sayOf(k);
+        return v_flex()
+          .id(`line-${k.address}`)
+          .px(8)
+          .py(6)
+          .gap(2)
+          .rounded(6)
+          .hover((s) => s.bg(t.hover))
+          .on_click(() => {
+            run("terminal.peek", { terminal: k.address });
+            closeOverlay(props().overlay);
+          })
+          .child(head(t, k))
+          .when(Boolean(say), (el) => el.child(div().truncate().text_size(12).text_color(t.muted).child(say)));
+      })));
   }
 
   menu(w) {
@@ -594,10 +507,9 @@ export default class Spaces extends View {
   render() {
     const t = theme();
     if (props()?.card) return this.card(t, props().card);
-    if (props()?.crew) return this.crewView(t, props().crew);
-    const all = NESTED.includes(mode()) ? terminals() : [];
-    this.subs = Object.fromEntries(all.length ? spaces().map((s) => [s.id, crew(all, s.id)]) : []);
     const collapsed = narrow();
+    this.mode = modeOf().id;
+    this.subs = !collapsed && NESTED.includes(this.mode) ? crews(terminals()) : {};
     const palette = ["ansi6", "ansi3", "ansi4", "ansi5", "ansi2", "ansi1"];
     const sp = spaces();
     const ids = new Set(sp.map(p => p.id));

@@ -4,6 +4,7 @@
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout, nextCommand, notify } from "herdr";
+import { MODES, modeOf, RANK, kidStatus, kidsByParent, subTree } from "./subagents.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -39,26 +40,11 @@ function title(tab, l) {
   const telling = live && live !== prog && !/^[~/]|^[A-Za-z]:\\/.test(live) && !live.includes("@") && live.toLowerCase() !== l?.program?.key;
   return (tab.name === prog || !tab.named) && telling ? live : tab.name;
 }
-const RANK = { blocked: 4, done: 3, working: 2, idle: 1 };
-// A sub-agent without a pane isn't in agents(): its raw word, error counting as
-// blocked. It's never done: it reports to its parent, and the parent's done is the news.
-const kidStatus = (k, listed) => {
-  const s = listed.get(k.address) ?? k.status;
-  return s === "error" ? "blocked" : s === "done" ? "idle" : s;
-};
 const SORTS = [
   { id: "priority", label: "Priority", icon: "clock" },
   { id: "grouped", label: "Grouped by space", icon: "layers" },
 ];
 const sortOf = () => SORTS.find((s) => s.id === shared("agents.sort")) ?? SORTS[0];
-const MODES = [
-  { id: "off", label: "Off", icon: "minus" },
-  { id: "follow", label: "Follow selected space", icon: "folder" },
-  { id: "tree", label: "Tree in Spaces", icon: "git-branch" },
-  { id: "dots", label: "Dots in Spaces", icon: "circle-check" },
-  { id: "tab", label: "Agents tab", icon: "files" },
-];
-const modeOf = () => MODES.find((m) => m.id === shared("nested.mode")) ?? MODES.find((m) => m.id === "follow");
 const SECTION = { 4: "Needs you", 3: "Done", 2: "Working", 1: "Idle" };
 const SECTION_STATUS = { 4: "blocked", 3: "done", 2: "working" };
 
@@ -86,16 +72,13 @@ export default class Agents extends View {
     if (!this.pendingPins.length) localStorage.removeItem("pins");
     this.migratingPins = new Set();
     cx.timer.every(30000, (cx) => cx.notify());
-    cx.spawn(async (cx) => {
+    cx.spawn(async () => {
       for (;;) {
         const command = await nextCommand();
-        const at = MODES.indexOf(modeOf());
-        const next = command === "next" ? MODES[(at + 1) % MODES.length] : MODES.find((m) => m.id === command);
-        if (next) {
-          setShared("nested.mode", next.id);
-          notify({ title: `Sub-agents: ${next.label}`, timeout: 2000 });
-        }
-        cx.notify();
+        const next = command === "next" ? MODES[(MODES.indexOf(modeOf()) + 1) % MODES.length] : MODES.find((m) => m.id === command);
+        if (!next) continue;
+        setShared("nested.mode", next.id);
+        notify({ title: `Sub-agents: ${next.label}`, timeout: 2000 });
       }
     });
   }
@@ -156,48 +139,36 @@ export default class Agents extends View {
   }
 
   sortMenu(t) {
-    const heading = (text) => div().px(8).pt(4).pb(6).text_size(11).text_color(t.dim).child(text);
-    const item = (id, label, iconName, checked, pick) => h_flex()
-      .id(id)
-      .h(31)
-      .px(8)
-      .gap(9)
-      .rounded(7)
-      .items_center()
-      .text_color(t.foreground)
-      .hover((el) => el.bg(t.hover))
-      .on_click(() => {
-        pick();
-        closeOverlay(props().overlay);
-      })
-      .child(svg(`mods/workspace-chrome/${iconName}.svg`).size(14).flex_none().text_color(t.muted))
-      .child(div().flex_1().child(label))
-      .when(checked, (el) => el.child(svg("mods/workspace-chrome/check.svg").size(14).flex_none().text_color(t.foreground)));
+    const section = (title, key, options, on) => [
+      div().px(8).pt(4).pb(6).text_size(11).text_color(t.dim).child(title),
+      ...options.map((o) => h_flex()
+        .id(`${key}-${o.id}`)
+        .h(31)
+        .px(8)
+        .gap(9)
+        .rounded(7)
+        .items_center()
+        .text_color(t.foreground)
+        .hover((el) => el.bg(t.hover))
+        .on_click(() => {
+          setShared(key, o.id);
+          closeOverlay(props().overlay);
+        })
+        .child(svg(`mods/workspace-chrome/${o.icon}.svg`).size(14).flex_none().text_color(t.muted))
+        .child(div().flex_1().child(o.label))
+        .when(o.id === on, (el) => el.child(svg("mods/workspace-chrome/check.svg").size(14).flex_none().text_color(t.foreground)))),
+    ];
     return v_flex()
       .w_full()
       .p(5)
       .bg(t.popover)
       .text_size(12.8)
-      .child(heading("Sort agents"))
-      .children(SORTS.map((s) => item(`sort-${s.id}`, s.label, s.icon, s.id === sortOf().id, () => setShared("agents.sort", s.id))))
-      .child(heading("Sub-agents").pt(10))
-      .children(MODES.map((m) => item(`mode-${m.id}`, m.label, m.icon, m.id === modeOf().id, () => setShared("nested.mode", m.id))));
+      .children(section("Sort agents", "agents.sort", SORTS, sortOf().id))
+      .children(section("Sub-agents", "nested.mode", MODES, modeOf().id));
   }
 
   peek(addr) {
     run("terminal.peek", { terminal: addr });
-  }
-
-  // Live sub-agents of `addr`, depth first, each with the tree lines in front of it.
-  tree(all, addr, lead = []) {
-    const kids = all.filter((k) => k.parent === addr && k.state === "live" && (modeOf().id === "off" || !k.labels?.["herdr.space"]));
-    return kids.flatMap((k, i) => {
-      const last = i === kids.length - 1;
-      return [
-        { t: k, lines: [...lead, last ? "└" : "├"] },
-        ...this.tree(all, k.address, [...lead, last ? "" : "│"]),
-      ];
-    });
   }
 
   subRow(t, s, shown, compact) {
@@ -250,10 +221,12 @@ export default class Agents extends View {
     const now = Date.now();
     this.track(list, now);
     this.hold(list);
-    const here = modeOf().id === "follow" ? spaces().find((s) => s.id === focused()?.space) : null;
+    const mode = modeOf().id;
+    const kids = kidsByParent(all, mode !== "off");
+    const here = mode === "follow" ? spaces().find((s) => s.active) : null;
     if (here) list = list.filter((a) => a.space === here.id);
     const byPriority = sort.id === "priority";
-    const urgency = new Map(list.map((a) => [a.address, Math.max(this.rank(a), ...this.tree(all, a.address).map((s) => RANK[kidStatus(s.t, this.listed)] ?? 0))]));
+    const urgency = new Map(list.map((a) => [a.address, Math.max(this.rank(a), ...subTree(kids, a.address).map((s) => RANK[kidStatus(s.t, this.listed)] ?? 0))]));
     const rankOf = (a) => urgency.get(a.address);
     if (byPriority) list = [...list].sort((x, y) => rankOf(y) - rankOf(x) || this.since(y) - this.since(x) || y.seq - x.seq);
     const pinned = list.filter((a) => a.pinned);
@@ -262,7 +235,7 @@ export default class Agents extends View {
     setAgentOrder(list.map((a) => a.address));
 
     const withKids = (a, i) => {
-      const subs = collapsed ? [] : this.tree(all, a.address);
+      const subs = collapsed ? [] : subTree(kids, a.address);
       const r = row(a, i, subs);
       if (this.folded.has(a.address)) return [r];
       return [r, ...subs.map((s) => this.subRow(t, s, shown, byPriority))];
@@ -449,7 +422,7 @@ export default class Agents extends View {
                 .text_size(11)
                 .text_color(t.dim)
                 .hover((s) => s.text_color(t.foreground))
-                .on_click(() => openOverlay({ mod: "nested-agents", kind: "popup", width: 224, height: 72 + 31 * (SORTS.length + MODES.length), props: { sortMenu: true } }))
+                .on_click(() => openOverlay({ mod: "nested-agents", kind: "popup", width: 224, height: 320, props: { sortMenu: true } }))
                 .tooltip(`Sort agents: ${sort.label}`)
                 .child(svg(`mods/workspace-chrome/${sort.icon}.svg`).size(14)),
             ),

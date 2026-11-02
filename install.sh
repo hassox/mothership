@@ -11,7 +11,9 @@ for mod in "$REPO"/mods/*/; do
     echo "skip $target: a folder that is not a link is there" >&2
     continue
   fi
+  cp "$REPO"/shared/*.js "$mod"
   ln -sfn "${mod%/}" "$target"
+  herdr-app check "$target"
 done
 
 if [ ! -e "$APP/layouts/$LAYOUT.json" ]; then
@@ -30,9 +32,8 @@ for meta in mods.glob("*/mod.json"):
 
 def walk(node):
     if isinstance(node, dict):
-        content = node.get("content")
-        if isinstance(content, dict) and content.get("mod") in swap:
-            content["mod"] = swap[content["mod"]]
+        if node.get("mod") in swap:
+            node["mod"] = swap[node["mod"]]
         for value in node.values():
             walk(value)
     elif isinstance(node, list):
@@ -46,6 +47,3 @@ print("layout", layout.name, "uses", ", ".join(f"{a} -> {b}" for a, b in swap.it
 PY
 
 herdr-app do layout.switch "{\"name\":\"$LAYOUT\"}" >/dev/null
-for mod in "$REPO"/mods/*/; do
-  herdr-app check "$APP/mods/$(basename "$mod")"
-done

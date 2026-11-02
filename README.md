@@ -48,7 +48,13 @@ In every mode, clicking a sub-agent opens it with `terminal.peek`.
 - `nested-agents`: Herdr's `agents` 0.1.12 with the mode menu, the mode
   commands and the Follow filter.
 - `nested-spaces`: Herdr's `spaces` 0.1.12 with the Tree, Dots and Agents
-  tab modes.
+  tab chips, and the Dots card.
+- `nested-crew`: the Agents tab. It reads each sub-agent's screen every 5
+  seconds, only while the tab is in front.
+
+`shared/subagents.js` holds the ownership rule, the mode list and the
+sub-agent helpers. Herdr loads only files inside a mod's own folder, so
+`install.sh` copies it into each mod. Edit it in `shared/`.
 
 Clones do not get Herdr's updates. When Herdr ships a new `agents` or
 `spaces`, clone it again and move these changes onto the new copy.
