@@ -5,7 +5,7 @@ My Herdr mods and layout.
 ## Install
 
 ```sh
-git clone <this repo> ~/Dev/personal/herdr-configs
+git clone git@github.com:hassox/herdr-configs.git ~/Dev/personal/herdr-configs
 ~/Dev/personal/herdr-configs/install.sh
 ```
 
