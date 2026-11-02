@@ -186,7 +186,7 @@ export default class Agents extends View {
       .gap(0)
       .items_center()
       .text_size(12.5)
-      .when(on, (el) => el.bg(t.raised))
+      .when(on, (el) => el.bg(t.selected))
       .hover((s) => s.bg(t.hover))
       .on_click(() => this.peek(k.address))
       .children(s.lines.map(l => div().self_start().mt(-4).w(9).h(17).mr(4).flex_none()
@@ -217,7 +217,7 @@ export default class Agents extends View {
     this.listed = new Map(list.map((a) => [a.address, a.status]));
     const all = terminals();
     this.migratePins(all);
-    const shown = focused()?.agent;
+    const shown = focused()?.agent ?? focused()?.terminal;
     const now = Date.now();
     this.track(list, now);
     this.hold(list);
@@ -333,6 +333,7 @@ export default class Agents extends View {
         .items_center()
         .gap(9)
         .when(a.focused, (el) => el.bg(t.selected))
+        .when(!a.focused && subs.some((s) => s.t.address === shown), (el) => el.bg(t.raised))
         .cursor_pointer()
         .hover((s) => s.bg(t.hover))
         .on_hover((on, cx) => {

@@ -42,6 +42,27 @@ export function subTree(by, addr, lead = []) {
   });
 }
 
+export function roles(all) {
+  const by = kidsByParent(all, false);
+  const byAddress = new Map(all.map((k) => [k.address, k]));
+  return (addr) => {
+    const k = byAddress.get(addr);
+    if (!k) return null;
+    const up = k.parent && (k.parent.includes("/") ? k.parent : prefix(k.address) + k.parent);
+    const subs = subTree(by, addr);
+    if (!up && !subs.length) return null;
+    return { parent: up ? byAddress.get(up) ?? { address: up } : null, subs: subs.length, status: topStatus(subs) };
+  };
+}
+
+export const subOf = (r) => `Sub-agent of ${r.parent.name || r.parent.where || nameOf(r.parent)}`;
+
+export function leadChip(t, r) {
+  if (!r?.subs) return null;
+  const color = t[r.status] ?? t.dim;
+  return div().flex_none().px(6).h(18).flex().items_center().rounded(5).bg(color + "1f").text_size(11).font_medium().text_color(color).child(`Lead of ${r.subs}`);
+}
+
 export function crews(all) {
   const by = kidsByParent(all, true);
   const out = {};
