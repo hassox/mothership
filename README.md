@@ -49,7 +49,7 @@ In every mode, clicking a sub-agent opens it with `terminal.peek`.
   commands and the Follow filter.
 - `nested-spaces`: Herdr's `spaces` 0.1.12 with the Tree, Dots and Agents
   tab chips, and the Dots card.
-- `nested-crew`: the Agents tab. It reads each sub-agent's screen every 5
+- `nested-crew`: the Agents tab. It reads each sub-agent's screen and branch every 5
   seconds, only while the tab is in front.
 
 `shared/subagents.js` holds the ownership rule, the mode list and the
