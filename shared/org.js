@@ -1,4 +1,4 @@
-import { kidsByParent, parentOf, nameOf, whereOf } from "./subagents.js";
+import { kidsByParent, parentOf, nameOf, whereOf, topStatus } from "./subagents.js";
 
 export const KEYS = ["role", "profile", "harness", "machine", "status"];
 export const SCOPES = [
@@ -16,8 +16,8 @@ export function tagText(k) {
 export function orgTree(all, scope) {
   const live = new Set(all.filter((k) => k.state === "live").map((k) => k.address));
   const by = kidsByParent(all, false);
-  const node = (k) => {
-    const kids = (by.get(k.address) ?? []).map(node);
+  const node = (k, top) => {
+    const kids = (by.get(k.address) ?? []).map((c) => node(c, false));
     return {
       t: k,
       address: k.address,
@@ -28,13 +28,17 @@ export function orgTree(all, scope) {
       machine: k.address.includes("/") ? k.address.split("/")[0] : "local",
       status: k.status ?? null,
       kids,
-      leader: kids.length > 0,
+      reports: kids.length,
+      urgent: topStatus(kids),
+      leader: kids.length > 0 || (top && isAgent(k)),
     };
   };
-  return all
+  const leadersOnly = (n) => ({ ...n, kids: n.kids.filter((c) => c.leader).map(leadersOnly) });
+  const roots = all
     .filter((k) => k.state === "live" && !live.has(parentOf(k)))
-    .map(node)
-    .filter((n) => n.leader || (scope === "all" && isAgent(n.t)));
+    .map((k) => node(k, true))
+    .filter((n) => n.leader);
+  return scope === "all" ? roots : roots.map(leadersOnly);
 }
 
 export function facets(roots) {

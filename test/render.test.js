@@ -11,7 +11,7 @@ const space = { id: "s1", name: "prime", active: true, tabs: [{ id: "tb1", name:
 beforeEach(() => {
   Object.assign(state, {
     terminals: all, agents: [], spaces: [space], focused: null, props: {}, ran: [], overlays: [],
-    shared: { "agents.sort": "org" },
+    shared: { "agents.sort": "org", "org.scope": "all" },
     panes: [
       { pane: "p1", tab: "tb1", terminal: "t3", title: "r-ui", program, status: "blocked", cwd: "/repo/ui" },
       { pane: "p2", tab: "tb2", terminal: "t5", title: "notes", program, status: "idle", cwd: "/repo/notes" },
@@ -38,10 +38,10 @@ const rowIds = (tree) => {
 };
 
 describe("F5 display", () => {
-  test("the Org view lists the leaders tree depth first, with tag text on each row", () => {
+  test("the Org view lists the tree depth first, with tag text on each row", () => {
     const { tree } = sidebar();
     const t = tree();
-    expect(rowIds(t)).toEqual(["t1", "t2", "t3", "t4", "t5", "vps/t2", "vps/t3"]);
+    expect(rowIds(t)).toEqual(["t1", "t2", "t3", "t4", "t5", "t6", "vps/t2", "vps/t3"]);
     expect(texts(findId(t, "org-t3"))).toContain("worker · poteto");
     expect(texts(findId(t, "org-t4"))).toContain("worker");
     expect(texts(findId(t, "org-t1"))).toContain("lead · poteto");
@@ -51,16 +51,18 @@ describe("F5 display", () => {
   test("folding a nested leader hides its children", () => {
     const { tree } = sidebar();
     click(findId(tree(), "org-fold-t2"));
-    expect(rowIds(tree())).toEqual(["t1", "t2", "t5", "vps/t2", "vps/t3"]);
+    expect(rowIds(tree())).toEqual(["t1", "t2", "t5", "t6", "vps/t2", "vps/t3"]);
   });
 
-  test("the scope toggle switches to All, which adds lone agents", () => {
+  test("the Leaders scope shows only leaders, with a count of each leader's reports", () => {
     const { tree } = sidebar();
-    click(findId(tree(), "org-scope-all"));
-    expect(state.shared["org.scope"]).toBe("all");
-    expect(rowIds(tree())).toContain(lone.address);
     click(findId(tree(), "org-scope-leaders"));
-    expect(rowIds(tree())).not.toContain(lone.address);
+    expect(state.shared["org.scope"]).toBe("leaders");
+    const t = tree();
+    expect(rowIds(t)).toEqual(["t1", "t2", lone.address, "vps/t2"]);
+    expect(texts(findId(t, "org-t2"))).toContain("2");
+    click(findId(t, "org-scope-all"));
+    expect(rowIds(tree())).toContain("t3");
   });
 
   test("typing in the search box filters the tree", () => {

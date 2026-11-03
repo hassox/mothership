@@ -45,7 +45,7 @@ describe("F6 search and filter", () => {
   });
 
   test("the leaders scope filters its own tree", () => {
-    expect(run("profile:poteto", "leaders")).toEqual(["t1", "t2~", "t3"]);
+    expect(run("profile:poteto", "leaders")).toEqual(["t1", "t6"]);
   });
 
   test("toggleTerm adds a term, then removes it, leaving the rest", () => {

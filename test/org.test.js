@@ -5,34 +5,45 @@ import { all, shell, lone, notes, remoteKid } from "./fixture.js";
 const shape = (nodes) => nodes.map((n) => [n.address, ...(n.kids.length ? [shape(n.kids)] : [])]);
 
 describe("F3 nested leaders", () => {
-  test("leaders scope returns only top leaders, each with its full subtree", () => {
-    expect(shape(orgTree(all, "leaders"))).toEqual([
+  test("leaders scope keeps only leaders: top-level agents and sub-agents with children", () => {
+    expect(shape(orgTree(all, "leaders"))).toEqual([["t1", [["t2"]]], ["t6"], ["vps/t2"]]);
+  });
+
+  test("all scope keeps every agent, each leader with its full subtree, and leaves plain shells out", () => {
+    expect(shape(orgTree(all, "all"))).toEqual([
       ["t1", [["t2", [["t3"], ["t4"]]], ["t5"]]],
+      ["t6"],
       ["vps/t2", [["vps/t3"]]],
     ]);
   });
 
-  test("a sub-agent with children is a leader inside its leader's tree", () => {
+  test("a leader counts its direct reports, including the ones the leaders scope hides", () => {
     const [prime] = orgTree(all, "leaders");
-    expect(prime.leader).toBe(true);
-    expect(prime.kids.map((k) => [k.address, k.leader])).toEqual([["t2", true], ["t5", false]]);
+    expect([prime.leader, prime.reports]).toEqual([true, 2]);
+    expect([prime.kids[0].address, prime.kids[0].leader, prime.kids[0].reports]).toEqual(["t2", true, 2]);
+    expect(orgTree(all, "all")[0].kids.map((k) => [k.address, k.leader])).toEqual([["t2", true], ["t5", false]]);
   });
 
-  test("all scope adds lone agents as roots and still leaves plain shells out", () => {
-    expect(orgTree(all, "all").map((n) => n.address)).toEqual(["t1", "t6", "vps/t2"]);
-  });
-
-  test("a leader whose last child ends leaves the leaders scope and stays in all", () => {
+  test("a top-level agent stays a leader with no children; a sub-agent stops leading when its last child ends", () => {
     const finished = all.map((k) => (k.parent === "t2" && !k.address.includes("/") ? { ...k, state: "finished" } : k));
-    const sub = orgTree(finished, "leaders")[0].kids.find((k) => k.address === "t2");
-    expect(sub.leader).toBe(false);
+    expect(shape(orgTree(finished, "leaders"))[0]).toEqual(["t1"]);
     const solo = [{ ...lone, address: "t9" }, { ...notes, address: "t10", parent: "t9", state: "finished" }];
-    expect(orgTree(solo, "leaders")).toEqual([]);
-    expect(orgTree(solo, "all").map((n) => n.address)).toEqual(["t9"]);
+    expect(orgTree(solo, "leaders").map((n) => [n.address, n.leader, n.reports])).toEqual([["t9", true, 0]]);
+  });
+
+  test("a sub-agent whose parent ended is top-level, so it leads", () => {
+    const orphan = all.map((k) => (k.address === "t1" ? { ...k, state: "finished" } : k));
+    expect(orgTree(orphan, "leaders").map((n) => n.address)).toEqual(["t2", "t5", "t6", "vps/t2"]);
+  });
+
+  test("a plain shell with agent children leads them; a lone plain shell is not in the org", () => {
+    const sh = { ...shell, address: "t30" };
+    const kid = { ...notes, address: "t31", parent: "t30" };
+    expect(orgTree([sh, kid, shell], "leaders").map((n) => n.address)).toEqual(["t30"]);
   });
 
   test("a remote child with a bare parent nests under the parent on its machine", () => {
-    const remote = orgTree(all, "leaders")[1];
+    const remote = orgTree(all, "all")[2];
     expect(remote.machine).toBe("vps");
     expect(remote.kids[0].address).toBe("vps/t3");
   });

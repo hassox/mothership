@@ -240,7 +240,6 @@ export default class Agents extends View {
     const open = !this.folded.has(`org:${n.address}`);
     const tag = tagText(k);
     const pane = panes().find((p) => p.terminal === n.address);
-    const top = n.kids.map((c) => kidStatus(c.t, this.listed)).reduce((m, s) => ((RANK[s] ?? 0) > (RANK[m] ?? 0) ? s : m), null);
     return h_flex()
       .id(`org-${n.address}`)
       .px(8)
@@ -266,7 +265,7 @@ export default class Agents extends View {
       .when(Boolean(pic), (el) => el.child(div().mr(7).child(pic)))
       .child(div().flex_1().min_w(0).truncate().text_color(n.match === false ? t.dim : on || n.kids.length ? t.foreground : t.muted).child(n.name))
       .when(Boolean(tag), (el) => el.child(div().flex_none().max_w(130).ml(6).truncate().text_size(11).text_color(t.dim).child(tag)))
-      .when(n.kids.length > 0 && !open, (el) => el.child(div().flex_none().ml(6).text_size(11).text_color(t[top] ?? t.dim).child(String(n.kids.length))))
+      .when((n.kids.length > 0 && !open) || n.reports > n.kids.length, (el) => el.child(div().flex_none().ml(6).text_size(11).text_color(t[n.urgent] ?? t.dim).tooltip(`${n.reports} reporting`).child(String(n.reports))))
       .child(div().ml(6).child(this.status(t, { status: kidStatus(k, this.listed) }, true)));
   }
 
@@ -552,9 +551,10 @@ export default class Agents extends View {
       : collapsed
         ? list.flatMap(withKids)
         : groups.flatMap((g) => [header(g), ...(this.folded.has(g.id) ? [] : g.members.flatMap(withKids))]);
-    const count = (nodes) => nodes.reduce((n, x) => [n[0] + (x.kids.length ? 1 : 0), n[1] + 1].map((v, i) => v + count(x.kids)[i]), [0, 0]);
+    const count = (nodes) => nodes.reduce((n, x) => [n[0] + (x.leader ? 1 : 0), n[1] + 1].map((v, i) => v + count(x.kids)[i]), [0, 0]);
     const [leads, members] = count(org);
-    const orgEmpty = (shared("org.filter") ?? "").trim() ? "Nothing matches." : scopeOf().id === "leaders" ? "No leaders. A leader is an agent that started another with hc run." : "No agents.";
+    const shownAs = scopeOf().id === "leaders" ? `${leads} leaders` : `${leads} leaders · ${members} agents`;
+    const orgEmpty = (shared("org.filter") ?? "").trim() ? "Nothing matches." : "No agents.";
 
     return v_flex()
       .size_full()
@@ -592,7 +592,7 @@ export default class Agents extends View {
         el.child(div().px(12).text_size(12).text_color(t.dim).child(here ? `No agents in ${here.name}.` : "No agent status yet. Agents show up here when they report their status. Older versions and agents inside tmux may not.")),
       )
       .child(v_flex().id("ag-list").flex_1().min_h(0).px(collapsed ? 0 : 8).overflow_y_scrollbar().mode("always").children(rows))
-      .when(isOrg && org.length > 0, (el) => el.child(div().px(16).h(26).flex_none().flex().items_center().text_size(11).text_color(t.dim).child(`${leads} leaders · ${members} agents`)))
+      .when(isOrg && org.length > 0, (el) => el.child(div().px(16).h(26).flex_none().flex().items_center().text_size(11).text_color(t.dim).child(shownAs)))
       .when(collapsed, (el) =>
         el.child(
           h_flex()

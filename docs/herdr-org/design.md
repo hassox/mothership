@@ -42,37 +42,31 @@ entry.
 
 ### Leader rule
 
-**A leader is a live terminal with at least one live child.**
+**A leader is a live agent with no live parent, or a live terminal with at
+least one live child.**
 
-I rejected the other two rules:
+So every top-level agent leads, even before it starts anyone. A sub-agent
+leads once it has children of its own, at any depth. A sub-agent whose
+parent ended is top-level, so it leads. A plain shell leads only if it
+has children. A lone plain shell is not in the org.
 
-- "No parent". Every shell and every lone agent the person opens would be
-  a leader. The view would be the whole terminal list again.
-- "`role=lead`". An untagged parent would drop out of the view, and its
-  children would lose their place. That is guessing by omission. It also
-  makes a structural fact depend on a tag that someone must remember to
-  write.
+The rule uses only `parent`, which the core sets and nobody can edit
+(§3), plus whether the terminal reports agent status. `org.role=lead` is
+display data. It does not make a terminal a leader. I rejected a
+`role=lead` rule because an untagged leader would drop out of the view,
+and its children would lose their place.
 
-"Has children" uses only `parent`, which the core sets and nobody can
-edit (§3). It is the same rule as the existing *Lead of N* chip
-(`roles()` in `shared/subagents.js`), so the tab bar, the pane header and
-the Org view agree. Nesting works at any depth: a sub-agent with
-children is a leader under its own leader. `org.role=lead` is display
-data. It does not make a terminal a leader.
-
-When a leader's last child ends, it leaves the Leaders scope. It
-stays in the All scope and in the normal Agents list.
+When a sub-agent's last child ends, it stops leading. A top-level agent
+keeps leading with no children.
 
 ### Scope
 
-| Scope | Roots | Under each root |
-|---|---|---|
-| Leaders | leaders with no live leader above them | the full subtree |
-| All | every org member with no live parent: leaders and lone agents | the full subtree |
+| Scope | Shows |
+|---|---|
+| Leaders | only leaders: each top-level agent, and under it the sub-agents that lead others, at any depth. Each row shows its count of direct reports, colored by the most urgent one, including the reports the scope hides. |
+| All | every top-level agent with its full subtree. |
 
-An org member is a live terminal that reports agent status (OSC 7501) or
-has a parent or children. A plain shell outside any tree is not a member,
-so All does not list every shell.
+A plain shell outside any tree is in neither scope.
 
 ### Shape
 
@@ -89,10 +83,12 @@ into each mod.
   machine,           // prefix or "local"
   status,            // status word or null
   kids: OrgNode[],   // live children, in terminals() order
-  leader: boolean,   // kids.length > 0
+  reports: number,   // direct children, before the leaders scope prunes them
+  urgent,            // the most urgent report's status
+  leader: boolean,   // kids, or top-level and an agent
 }
 
-orgTree(terminals, scope) // scope "leaders" | "all" → OrgNode[]: the roots in the Scope table, each with its full subtree
+orgTree(terminals, scope) // scope "leaders" | "all" → OrgNode[]: the top-level leaders, pruned to leaders in the leaders scope
 facets(roots)        // → { role, profile, harness, machine, status }: Map<value, count> each, null values left out
 parseQuery(text)     // → { words: string[], role: string[], profile: [], harness: [], machine: [], status: [] }
 toggleTerm(text, key, value) // → the search text with `key:value` added or removed (the popup's ticks)
