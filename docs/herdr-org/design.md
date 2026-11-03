@@ -94,7 +94,9 @@ into each mod.
 
 orgTree(terminals, scope) // scope "leaders" | "all" → OrgNode[]: the roots in the Scope table, each with its full subtree
 facets(roots)        // → { role, profile, harness, machine, status }: Map<value, count> each, null values left out
-filterTree(roots, f) // → OrgNode[]: matches and their ancestors, with node.match = false on ancestors kept only for context
+parseQuery(text)     // → { words: string[], role: string[], profile: [], harness: [], machine: [], status: [] }
+toggleTerm(text, key, value) // → the search text with `key:value` added or removed (the popup's ticks)
+filterTree(roots, query) // → OrgNode[]: matches and their ancestors, with node.match = false on ancestors kept only for context
 tagText(t)           // → "worker · poteto", "worker", "poteto", or null when neither label is set
 ```
 
@@ -127,16 +129,61 @@ hc label t7 org.role=reviewer org.profile=poteto
 
 `plugins/hc-context/` moves from agent-files into this repo, with
 agent-files commit `45c89c3` named in the commit message. That plugin is
-agent-files' only herdr item (discovery "Existing code"). The plugin
-install steps move from agent-files' `install.sh` into this repo's
-`install.sh`. Herdr Org adds no new SKILL.md. The plugin's one-line
-context message is how agents learn the steps, as it is today.
+agent-files' only herdr item (discovery "Existing code"). Herdr Org adds
+no new SKILL.md. The plugin's context message is how agents learn the
+steps, as it is today.
 
-### Launch step: self-tag profile
+This repo takes over the install:
 
-The agent reads its profile from `HC_PROFILE` in its own environment. If
-`HC_PROFILE` is unset, it writes no profile label, and the view shows no
-profile.
+- `install.sh` gets agent-files' plugin steps (`claude`, `codex`, `grok`,
+  `agy` and `pi`, each skipped when not on `PATH`), after the mod steps.
+- `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`
+  are added here, with one plugin each: `hc-context`.
+
+agent-files stops installing it, so the hook does not run twice:
+
+- `hc-context` is removed from its two marketplace files and from its
+  `install.sh`.
+- `plugins/hc-context/` is replaced by a `README.md` that points to this
+  repo and names the commit. git keeps the history.
+- Its `README.md` plugin row points here.
+- Your uncommitted edits to agent-files' `README.md` and `install.sh` stay
+  as they are. My changes go into the same files without touching yours,
+  and I show you the diff before I commit there.
+- After the move, each harness must uninstall the old plugin from the
+  `hassox-agent-files` marketplace and install it from this repo.
+  `install.sh` here does the install. The uninstall is one command per
+  harness, listed in the README.
+
+### Launch step: the agent tags its own profile
+
+A profile is free text that says what the agent is, such as `poteto` or
+`reviewer`. It comes from one of two places. The first one that applies
+wins:
+
+1. **`HC_PROFILE` is set.** The start hook tags it before the model runs.
+   This path is reliable and tested (F1).
+2. **The agent tells us.** The context message asks the agent to tag
+   itself when it knows its profile:
+
+   > If `$HC_PROFILE` is unset and you know your profile (a persona, mode
+   > or job name that your task or a skill gave you), run
+   > `hc label $HC_TERMINAL_ID org.profile=<name>`. Run it again if your
+   > profile changes.
+
+   This path depends on the model following the message, so it is best
+   effort. It cannot be tested without a model. I check it once by hand
+   with a real Claude Code, Codex and pi session, and report what each did.
+
+With neither, there is no profile label and the view shows no profile.
+
+**No new tool.** `hc label` is already a command every agent can run
+through its shell. A dedicated tool would mean an MCP server in each
+harness for one command, and it would make the model no more likely to
+call it. If the best-effort path proves unreliable in the hand check, the
+fix is a sharper message, or relying on `HC_PROFILE` alone.
+
+The hook changes for path 1:
 
 | Harness | Where | Change |
 |---|---|---|
@@ -215,9 +262,8 @@ Leaders scope:
 ```
 ┌ Agents ─────────── [Leaders|All] ⚲ ⊟ ┐   scope toggle, ⚲ filter popup, ⊟ sort menu
 │ ┌────────────────────────────────┐   │
-│ │ ⌕ search                       │   │   text search
+│ │ ⌕ role:worker profile:poteto  ×│   │   search box; × clears it
 │ └────────────────────────────────┘   │
-│  role: worker ×   machine: vps ×     │   active filters; × removes one
 │                                      │
 │ ▾ ◆ prime / 1          lead · poteto ◌│   leader (no live leader above)
 │   ├ ✳ fix              worker · poteto ⟳│
@@ -257,9 +303,30 @@ All scope, same terminals plus two lone agents:
 - Empty, Leaders scope: "No leaders. A leader is an agent that started
   another with `hc run`." Empty, All scope: "No agents."
 
-### 4.2 Filter panel
+### 4.2 Search and filter
 
-The ⚲ button opens a popup, the same way the sort menu opens
+The search box is the filter. Its text is the only filter state. It uses
+the pattern of GitHub's issue search, where a bare word searches
+everything and `key:value` searches one field:
+
+| You type | Keeps nodes whose |
+|---|---|
+| `review` | name, address, role, profile or folder contains `review` |
+| `role:worker` | role contains `worker` |
+| `profile:poteto` | profile contains `poteto` |
+| `harness:codex`, `machine:vps`, `status:blocked` | that field contains the value |
+| `role:worker role:reviewer` | role contains either (the same key twice is OR) |
+| `role:worker profile:poteto api` | all three match (different keys and bare words are AND) |
+| `profile:"two words"` | quotes keep a value with spaces together |
+
+Matching ignores case. A node with no role never matches `role:…`. An
+unknown key, such as `foo:bar`, is searched as a bare word.
+
+The ⚲ button opens a popup that lists the values in the current tree.
+Ticking a value adds its `key:value` term to the search text, and
+unticking it removes the term. So the popup is a shortcut for typing,
+the same as the label dropdown in GitHub's issue list. The popup opens the
+same way the sort menu does
 (`openOverlay({mod: "nested-agents", kind: "popup", props: {filterMenu: true}})`).
 
 ```
@@ -284,14 +351,11 @@ The ⚲ button opens a popup, the same way the sort menu opens
 - The values and counts come from the current tree in the current scope
   (`facets`). A value shows only when some node has it. A missing label is
   not a value, so the popup has no "untagged" entry.
-- Inside one facet the values are OR. Across facets they are AND. The text
-  search is AND with the rest. It matches name, address, role, profile
-  and folder, ignoring case.
 - A node stays if it matches, or if any node below it matches. That is how
   the VS Code and GitHub file trees filter.
-- State lives in `shared("org.filter")`:
-  `{ q, role: [], profile: [], harness: [], machine: [], status: [] }`.
-  The popup and the list both read it, and setting it re-renders both.
+- The search text lives in `shared("org.filter")` as one string. The box,
+  the popup's ticks and the list all read it, and setting it re-renders
+  all three.
 
 ### 4.3 Tab bar and pane header
 
@@ -373,6 +437,8 @@ The label is set and stdout is still valid hook JSON;
 (c) load `pi.ts` with a fake `pi` object and fire `session_start`. The
 label is set;
 (d) with `HC_PROFILE` unset, no `org.profile` label appears.
+The agent-tells-us path (§3, path 2) has no automated test, because it
+needs a model. It gets the hand check described in §3.
 
 **F2. Role on spawn.** `test/spawn.test.js`: a fake parent runs the spawn
 line from `hc-context.txt` with `org.role=worker` and the launcher with
@@ -410,11 +476,14 @@ an untagged agent's pane, the rendered text equals what it renders today
 with no labels.
 
 **F6. Filters.** `test/filter.test.js`, pure, on a fixed 12-terminal
-fixture: each facet alone, two values in one facet (OR), two facets (AND),
-text search on name, role and folder, and search plus facets. Each case
-asserts the exact set of addresses kept and which kept ancestors have
-`match: false`. An empty filter returns the full tree. A filter with no
-match returns `[]`.
+fixture, one case per row of the §4.2 table: a bare word, each
+`key:value` key, the same key twice (OR), two keys (AND), keys plus a bare
+word, a quoted value, an unknown key, and `role:x` against nodes with no
+role. Each case asserts the exact set of addresses kept and which kept
+ancestors have `match: false`. An empty query returns the full tree. A
+query with no match returns `[]`. A second test file,
+`test/render.test.js`, ticks `role:worker` in the rendered popup, then
+unticks it. The search text becomes `role:worker` and then empty.
 
 **F7. Live updates.** `test/live.test.js`, on the scratch core. A test
 `herdr` stub keeps `terminals()` from `hc events --json` (snapshot, then
@@ -444,8 +513,25 @@ copy.
 **F9. Mod validity.** `scripts/check.sh` runs `herdr-app check` on every
 mod folder and fails on any non-zero exit. The pre-commit hook runs it.
 
-Build order: move the plugin, then F1 to F9 in order. Each is one commit
+Build order: move the plugin and its install into this repo, then stop
+agent-files installing it, then F1 to F9 in order. Each F is one commit
 with its test, and the whole suite passes before the next starts.
+
+### Wrap-up
+
+- A README section: the skills and hooks, the launcher, the Org view and
+  its search syntax, and how to run the checks.
+- `preview.png`, a `herdr-app shot` of the Org view with the 3-level
+  fixture and a search applied. herdr.dev needs it to list a shared mod
+  or layout.
+- `RECIPE.md`. herdr.dev also needs it, written in the order the app
+  guide gives: what you see, how it behaves, built from, watch out, done
+  when.
+- A short video of the Leaders and All scopes, folding, and the search.
+  `herdr-app shot` saves single frames, so the video is a sequence of
+  shots joined into one file.
+- The fixture agents for the captures run on your real core, with a
+  `herdr.space` label so the window shows them, and I remove them after.
 
 ## 8. Risks
 
