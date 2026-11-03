@@ -75,7 +75,7 @@ claude plugin uninstall hc-context@hassox-agent-files
 codex plugin remove hc-context@hassox-agent-files
 grok plugin uninstall hc-context
 agy plugin uninstall hc-context
-pi remove ~/Dev/personal/agent-files/plugins/hc-context
+pi remove "$(pi list | sed -n 's#^ *\(/.*/agent-files/plugins/hc-context\)$#\1#p')"
 ```
 
 Then run `make`.
