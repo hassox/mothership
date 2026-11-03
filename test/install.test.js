@@ -15,7 +15,8 @@ test("a mod brings the mods it needs, and nothing else", () => {
   expect(plan("mothership-pane", "mothership-tabs")).toEqual(["install-layout", "mothership-pane", "mothership-tabs"]);
 });
 
-test("make with no names installs every mod, the launcher and the plugin", () => {
+test("make install, and make with no names, install every mod, the launcher and the plugin", () => {
+  expect(plan("install")).toEqual(plan());
   const all = plan();
   expect(all.filter((s) => s.startsWith("mothership-")).sort()).toEqual(["mothership-agents", "mothership-crew", "mothership-pane", "mothership-spaces", "mothership-status", "mothership-tabs"]);
   expect(all).toContain("launcher");

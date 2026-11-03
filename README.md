@@ -17,10 +17,11 @@ Herdr must be open.
 ```sh
 git clone git@github.com:hassox/mothership.git
 cd mothership
-make
+make install
 ```
 
-`make` installs everything. To install only some pieces, name them:
+`make install` (or plain `make`) installs everything. To install only some
+pieces, name them:
 
 ```sh
 make mothership-agents mothership-pane
@@ -64,7 +65,7 @@ and skips the questions:
 make plugin HARNESSES="claude pi"
 ```
 
-After you edit a mod here, run `make` again. Herdr reloads a mod, in every
+After you edit a mod here, run `make install` again. Herdr reloads a mod, in every
 pane and panel that shows it, when a file in `~/.config/herdr-app/mods/`
 changes. It does not see changes made through a link, so `make` copies.
 Edit the files here, not the copies.
@@ -86,7 +87,7 @@ agy plugin uninstall hc-context
 pi remove "$(pi list | sed -n 's#^ *\(/.*/agent-files/plugins/hc-context\)$#\1#p')"
 ```
 
-Then run `make`.
+Then run `make install`.
 
 ## Uninstall
 

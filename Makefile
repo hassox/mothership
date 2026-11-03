@@ -4,9 +4,9 @@ MODS := $(patsubst mods/%/mod.json,%,$(wildcard mods/*/mod.json))
 UNMODS := $(addprefix uninstall-,$(MODS))
 
 .NOTPARALLEL:
-.PHONY: all layout launcher plugin $(MODS) uninstall uninstall-layout uninstall-launcher uninstall-plugin $(UNMODS)
+.PHONY: install layout launcher plugin $(MODS) uninstall uninstall-layout uninstall-launcher uninstall-plugin $(UNMODS)
 
-all: $(MODS) launcher plugin
+install: $(MODS) launcher plugin
 
 mothership-spaces: mothership-agents mothership-crew
 

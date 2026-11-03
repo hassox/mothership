@@ -9,6 +9,23 @@ and a sub-agent's pane header takes you to its leader in one click.
 
 ![Mothership](preview.png)
 
+**To install it, clone the repo and run `make install`** (it needs `make`,
+`python3`, `rsync` and Herdr open):
+
+```sh
+git clone git@github.com:hassox/mothership.git
+cd mothership
+make install
+```
+
+Do not copy the mod folders by hand. The mods share `shared/subagents.js`
+and `shared/org.js`, which `make` copies into each mod, and `make` also
+installs the `hc-context` plugin that tags agents, and the
+`herdr-org-launch` launcher. Ask the person before the plugin step: in a
+terminal `make` asks per harness; from an agent, run
+`make install HARNESSES="<the harnesses they chose>"` (any of `claude`,
+`codex`, `grok`, `agy`, `pi`). `make uninstall` removes it all.
+
 ## What you see
 
 Left to right: a 268 px sidebar, then the work area.
