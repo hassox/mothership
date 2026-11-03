@@ -12,31 +12,54 @@ and All scopes, a search, and a sub-agent's leader button.
 
 ## Install
 
+Herdr must be open.
+
 ```sh
 git clone git@github.com:hassox/herdr-configs.git hassox-herdr-configs
 cd hassox-herdr-configs
-./install.sh
+make
 ```
 
-Herdr must be open. The script:
+`make` installs everything. To install only some pieces, name them:
 
-1. Copies each folder in `mods/` into `~/.config/herdr-app/mods/` and
-   checks it. It replaces only folders it installed before (they hold a
-   `.herdr-configs` file) and links from older installs.
-2. Copies `layouts/nested.json` into `~/.config/herdr-app/layouts/` if you
-   have no `nested` layout yet, and always copies its Settings picture,
-   `layouts/nested.png`. Then it switches the window to `nested`.
-3. Links `bin/herdr-org-launch` into `~/.local/bin`.
-4. Installs the `hc-context` plugin into each harness on `PATH`: Claude
-   Code, Codex, Grok Build, `agy` and pi.
+```sh
+make nested-agents nested-pane
+```
+
+| Name | What it adds | Also installs |
+|---|---|---|
+| `nested-agents` | The Agents list: the Org view, the sub-agent mode menu and Follow mode. | |
+| `nested-pane` | The pane header: tags, *Lead of N*, the leader button. | |
+| `nested-tabs` | The tab bar: tags, the `↳` and *Lead of N* marks. | |
+| `nested-status` | The status bar: the focused terminal's mark. | |
+| `nested-spaces` | The Spaces list: the Tree, Dots and Agents tab modes. | `nested-agents` (it has the mode menu), `nested-crew` |
+| `nested-crew` | The Agents tab that the Agents tab mode opens. | |
+| `launcher` | `herdr-org-launch` in `~/.local/bin`. | |
+| `plugin` | The `hc-context` plugin in each harness on `PATH`: Claude Code, Codex, Grok Build, `agy` and pi. | |
+
+The Makefile's prerequisite lines are the dependency list; `make -n <name>`
+shows what a name would install without doing it.
+
+Each mod:
+
+1. Is copied into `~/.config/herdr-app/mods/<name>/` and checked with
+   `herdr-app check`. `make` stops rather than replace a folder there that
+   it did not install (one without a `.herdr-configs` file).
+2. Takes the place of the Herdr mod it was cloned from in your `nested`
+   layout. `make` creates `nested` from Herdr's `main` the first time, so
+   the panels you did not install stay Herdr's own. It also sets the
+   layout's Settings picture.
+3. Switches the window to `nested`.
 
 `layout.switch` (`cmd-shift-l` on macOS) switches layouts, so `main` is
-one key away.
+one key away. Installing fewer mods later does not swap the others back;
+delete `~/.config/herdr-app/layouts/nested.json` and run `make` with the
+names you want.
 
-After you edit a mod here, run `install.sh` again. Herdr reloads a mod, in
-every pane and panel that shows it, when a file in
-`~/.config/herdr-app/mods/` changes. It does not see changes made through
-a link, so the script copies. Edit the files here, not the copies.
+After you edit a mod here, run `make` again. Herdr reloads a mod, in every
+pane and panel that shows it, when a file in `~/.config/herdr-app/mods/`
+changes. It does not see changes made through a link, so `make` copies.
+Edit the files here, not the copies.
 
 Codex runs a new or changed plugin hook only after you trust it. After the
 first install, and after a change to `plugins/hc-context/hooks/codex.json`,
@@ -55,7 +78,7 @@ agy plugin uninstall hc-context
 pi remove ~/Dev/personal/agent-files/plugins/hc-context
 ```
 
-Then run `./install.sh`.
+Then run `make`.
 
 ## The Org view
 
@@ -172,7 +195,11 @@ These show in every mode, Off included.
 
 ## What is in this repo
 
-- `layouts/nested.json`: the layout, a clone of Herdr's `main` 0.1.12.
+- `Makefile` and `scripts/`: the install. `scripts/swap-layout.py` puts a
+  mod in the place of the Herdr mod it was cloned from.
+- `layouts/nested.json`: the full layout, a clone of Herdr's `main` 0.1.12
+  with every mod swapped in, for herdr.dev. `make` builds yours from `main`
+  instead, so it holds only the mods you install.
 - `mods/`: clones of Herdr's 0.1.12 mods. `nested-agents` (`agents`) has
   the Org view, the modes and the Follow filter. `nested-spaces` (`spaces`)
   has the Tree, Dots and Agents tab chips. `nested-tabs` (`tabs`),
@@ -181,7 +208,7 @@ These show in every mode, Off included.
   and branch every 5 seconds, only while the tab is in front.
 - `shared/`: `subagents.js` (parents, sub-agent trees, marks) and `org.js`
   (the org tree, search, filter values, tag text). Herdr loads only files
-  inside a mod's own folder, so `install.sh` copies them into each mod.
+  inside a mod's own folder, so `make` copies them into each mod.
   Edit them in `shared/`.
 - `plugins/hc-context/`: the plugin, with a manifest and hook for each
   harness. Moved from hassox/agent-files at commit `45c89c3`.
