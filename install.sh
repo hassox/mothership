@@ -51,6 +51,9 @@ PY
 
 herdr-app do layout.switch "{\"name\":\"$LAYOUT\"}" >/dev/null
 
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$REPO/bin/herdr-org-launch" "$HOME/.local/bin/herdr-org-launch"
+
 plugin="$REPO/plugins/hc-context"
 marketplace=hassox-herdr-configs
 has() { command -v "$1" >/dev/null 2>&1; }

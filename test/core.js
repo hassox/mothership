@@ -23,7 +23,7 @@ export function scratchCore() {
     return { code: r.exitCode, out: r.stdout.toString(), err: r.stderr.toString() };
   };
   const json = (...args) => {
-    const r = hc(...args, "--json");
+    const r = hc(args[0], "--json", ...args.slice(1));
     if (r.code !== 0) throw new Error(`hc ${args.join(" ")}: ${r.err}`);
     return JSON.parse(r.out);
   };

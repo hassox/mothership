@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+[ $# -ge 2 ] || { echo "usage: herdr-org-launch <profile> <command> [args...]" >&2; exit 2; }
+profile=$1
+shift
+export HC_PROFILE="$profile"
+[ -z "${HC_TERMINAL_ID:-}" ] || hc label "$HC_TERMINAL_ID" "org.profile=$profile" >/dev/null
+exec "$@"
