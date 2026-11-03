@@ -1,0 +1,11 @@
+{
+  "hc-context": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "sh ./hc-context.sh agy",
+        "timeout": 5
+      }
+    ]
+  }
+}

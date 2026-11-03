@@ -1,0 +1,6 @@
+{
+  "name": "hc-context",
+  "version": "0.1.0",
+  "description": "Tells an agent that runs inside a herdr-core terminal to read `hc --skill`.",
+  "hooks": "./hooks/codex.json"
+}

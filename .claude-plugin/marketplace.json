@@ -1,0 +1,17 @@
+{
+  "name": "hassox-herdr-configs",
+  "owner": {
+    "name": "hassox"
+  },
+  "metadata": {
+    "description": "Herdr mods and the hc-context plugin",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "hc-context",
+      "description": "Tells an agent that runs inside a herdr-core terminal to read `hc --skill`.",
+      "source": "./plugins/hc-context"
+    }
+  ]
+}

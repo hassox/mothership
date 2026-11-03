@@ -1,0 +1,1 @@
+This session runs inside a herdr-core (hc) terminal. Before you start, message, read or wait on other terminals or agents, run `hc --skill` and follow it. Before you change panes, tabs or spaces in the window, run `herdr-app --skill`. The `herdr` CLI and the herdr skill are for the older multiplexer and do not apply here.

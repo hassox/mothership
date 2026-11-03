@@ -1,0 +1,13 @@
+{
+  "name": "hc-context",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tells an agent that runs inside a herdr-core terminal to read `hc --skill`.",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./pi.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

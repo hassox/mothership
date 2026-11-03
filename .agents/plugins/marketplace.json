@@ -1,0 +1,10 @@
+{
+  "name": "hassox-herdr-configs",
+  "interface": { "displayName": "hassox herdr-configs" },
+  "plugins": [
+    {
+      "name": "hc-context",
+      "source": { "source": "local", "path": "./plugins/hc-context" }
+    }
+  ]
+}

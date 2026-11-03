@@ -50,3 +50,29 @@ print("layout", layout.name, "uses", ", ".join(f"{a} -> {b}" for a, b in swap.it
 PY
 
 herdr-app do layout.switch "{\"name\":\"$LAYOUT\"}" >/dev/null
+
+plugin="$REPO/plugins/hc-context"
+marketplace=hassox-herdr-configs
+has() { command -v "$1" >/dev/null 2>&1; }
+
+if has claude; then
+  claude plugin marketplace add "$REPO"
+  claude plugin install "hc-context@$marketplace"
+fi
+
+if has codex; then
+  codex plugin marketplace add "$REPO"
+  codex plugin add "hc-context@$marketplace"
+fi
+
+if has grok; then
+  grok plugin list | grep -qF "[local: $plugin]" || grok plugin install "$plugin" --trust
+fi
+
+if has agy; then
+  agy plugin install "$plugin"
+fi
+
+if has pi; then
+  pi install "$plugin"
+fi
