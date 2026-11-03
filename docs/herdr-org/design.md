@@ -10,8 +10,10 @@ for. Herdr Org adds two tags and one view:
 
 - Each agent tags its own **profile** when it starts.
 - Each parent tags its child's **role** when it starts the child.
-- The Agents sidebar gets a **Leaders** view: a tree of leaders and their
-  children, with role and profile on each row and a filter panel.
+- The Agents sidebar gets an **Org** view: the agents as an org chart, with
+  role and profile on each row and a filter panel. A toggle switches
+  between **Leaders** (leaders and their children) and **All** (every
+  agent).
 
 The view extends the `nested-agents` mod and `shared/subagents.js`. It does
 not fork them.
@@ -27,15 +29,16 @@ sidecar would only duplicate them.
 
 | Field | Source | Set by | Missing |
 |---|---|---|---|
-| `profile` | label `org.profile` | the agent itself at start | `untagged` |
-| `role` | label `org.role` | the parent at spawn (`hc run --label`), editable later with `hc label` | `untagged` |
-| `harness` | OSC 7501 `app` (`report.app`): `claude-code`, `codex`, `pi` | the program | `none` |
+| `profile` | label `org.profile` | the agent itself at start | `null` |
+| `role` | label `org.role` | the parent at spawn (`hc run --label`), editable later with `hc label` | `null` |
+| `harness` | OSC 7501 `app` (`report.app`): `claude-code`, `codex`, `pi` | the program | `null` |
 | `machine` | address prefix (`vps/t7` → `vps`) | the core | `local` |
-| `status` | `status` word (`working`, `blocked`, `done`, `idle`) | the program | `none` |
+| `status` | `status` word (`working`, `blocked`, `done`, `idle`) | the program | `null` |
 | `parent` | `parent`, with the machine prefix added (existing `kidsByParent`) | the core, once at start | no parent |
 
 The mod never infers a role or a profile from a name, a template or argv.
-A missing label shows as `untagged`.
+A missing value shows nothing: no text, no placeholder, and no filter
+entry.
 
 ### Leader rule
 
@@ -53,12 +56,23 @@ I rejected the other two rules:
 "Has children" uses only `parent`, which the core sets and nobody can
 edit (§3). It is the same rule as the existing *Lead of N* chip
 (`roles()` in `shared/subagents.js`), so the tab bar, the pane header and
-the Leaders view agree. Nesting works at any depth: a sub-agent with
+the Org view agree. Nesting works at any depth: a sub-agent with
 children is a leader under its own leader. `org.role=lead` is display
 data. It does not make a terminal a leader.
 
-When a leader's last child ends, it leaves the Leaders view. It stays in
-the normal Agents list.
+When a leader's last child ends, it leaves the Leaders scope. It
+stays in the All scope and in the normal Agents list.
+
+### Scope
+
+| Scope | Roots | Under each root |
+|---|---|---|
+| Leaders | leaders with no live leader above them | the full subtree |
+| All | every org member with no live parent: leaders and lone agents | the full subtree |
+
+An org member is a live terminal that reports agent status (OSC 7501) or
+has a parent or children. A plain shell outside any tree is not a member,
+so All does not list every shell.
 
 ### Shape
 
@@ -70,18 +84,18 @@ into each mod.
 {
   t,                 // the terminals() record
   address,           // "t7" or "vps/t7"
-  role, profile,     // label value or "untagged"
-  harness,           // report.app or "none"
+  role, profile,     // label value or null
+  harness,           // report.app or null
   machine,           // prefix or "local"
-  status,            // status word or "none"
+  status,            // status word or null
   kids: OrgNode[],   // live children, in terminals() order
   leader: boolean,   // kids.length > 0
 }
 
-orgTree(terminals)   // → OrgNode[]: leaders with no live leader above them, each with its full subtree
-facets(roots)        // → { role, profile, harness, machine, status }: Map<value, count> each
+orgTree(terminals, scope) // scope "leaders" | "all" → OrgNode[]: the roots in the Scope table, each with its full subtree
+facets(roots)        // → { role, profile, harness, machine, status }: Map<value, count> each, null values left out
 filterTree(roots, f) // → OrgNode[]: matches and their ancestors, with node.match = false on ancestors kept only for context
-tagText(t)           // → "worker · poteto", or null for a plain shell outside any tree
+tagText(t)           // → "worker · poteto", "worker", "poteto", or null when neither label is set
 ```
 
 `orgTree` reuses `kidsByParent(all, false)`, so remote parents resolve the
@@ -89,8 +103,8 @@ same way they do today.
 
 ### Migration
 
-Existing terminals have no `org.*` labels. They show as `untagged`, still
-in the right place in the tree, because the tree comes from `parent`. The
+Existing terminals have no `org.*` labels. They show with no tag text,
+still in the right place in the tree, because the tree comes from `parent`. The
 design does no backfill. To tag one by hand:
 
 ```sh
@@ -121,8 +135,8 @@ context message is how agents learn the steps, as it is today.
 ### Launch step: self-tag profile
 
 The agent reads its profile from `HC_PROFILE` in its own environment. If
-`HC_PROFILE` is unset, it writes no profile label, and the view shows
-`untagged`.
+`HC_PROFILE` is unset, it writes no profile label, and the view shows no
+profile.
 
 | Harness | Where | Change |
 |---|---|---|
@@ -183,32 +197,51 @@ hc label fix org.role=reviewer
 
 ## 4. Views
 
-### 4.1 Leaders view, in the Agents sidebar
+### 4.1 Org view, in the Agents sidebar
 
 A third entry joins the existing **Sort agents** menu: *Priority*,
-*Grouped by space*, **Leaders**. A command, `nested-agents.leaders`, also
-selects it. The choice is stored in `shared("agents.sort")`, as today. The
-sub-agent modes (`MODES`) do not change. A Leaders entry there would also
-change the Spaces and Tabs mods, and Leaders is a different list, not a
+*Grouped by space*, **Org**. A command, `nested-agents.org`, also selects
+it. The choice is stored in `shared("agents.sort")`, as today. The
+sub-agent modes (`MODES`) do not change. An Org entry there would also
+change the Spaces and Tabs mods, and Org is a different list, not a
 different way to show sub-agents.
 
+A two-way toggle in the header picks the scope (§1 Scope): **Leaders**
+or **All**. It is stored in `shared("org.scope")`, default `leaders`. A
+command, `nested-agents.org-scope`, flips it, so a key can be bound to it.
+
+Leaders scope:
+
 ```
-┌ Agents ─────────────────────── ⚲ ⊟ ┐   ⚲ filter popup   ⊟ sort menu
-│ ┌──────────────────────────────┐   │
-│ │ ⌕ search                     │   │   text search
-│ └──────────────────────────────┘   │
-│  role: worker ×   machine: vps ×   │   active filters; × removes one
-│                                    │
-│ ▾ ◆ prime / 1        lead · poteto ◌│   leader (no live leader above)
-│   ├ ✳ fix            worker · poteto ⟳│
-│   ├ ▾ ◆ review   sub-lead · reviewer ●│   nested leader, foldable
-│   │   ├ ✳ r-ui     worker · untagged ⟳│
-│   │   └ ✳ r-api    worker · untagged !│
-│   └ ✳ notes        untagged · untagged│
-│ ▸ ◆ vps/t3    untagged · untagged  2 │   folded leader: count of children
-│                                    │
-│ 2 leaders · 7 agents               │
-└────────────────────────────────────┘
+┌ Agents ─────────── [Leaders|All] ⚲ ⊟ ┐   scope toggle, ⚲ filter popup, ⊟ sort menu
+│ ┌────────────────────────────────┐   │
+│ │ ⌕ search                       │   │   text search
+│ └────────────────────────────────┘   │
+│  role: worker ×   machine: vps ×     │   active filters; × removes one
+│                                      │
+│ ▾ ◆ prime / 1          lead · poteto ◌│   leader (no live leader above)
+│   ├ ✳ fix              worker · poteto ⟳│
+│   ├ ▾ ◆ review     sub-lead · reviewer ●│   nested leader, foldable
+│   │   ├ ✳ r-ui                 worker ⟳│   no profile label: role only
+│   │   └ ✳ r-api                worker !│
+│   └ ✳ notes                           ◌│   no labels: no tag text
+│ ▸ ◆ vps/t3                          2 │   folded leader: count of children
+│                                      │
+│ 2 leaders · 7 agents                 │
+└──────────────────────────────────────┘
+```
+
+All scope, same terminals plus two lone agents:
+
+```
+┌ Agents ─────────── [Leaders|All] ⚲ ⊟ ┐
+│ ▸ ◆ prime / 1          lead · poteto 5│
+│ ▸ ◆ vps/t3                          2 │
+│   ✳ scratch                   poteto ◌│   lone agent: a root with no children
+│   ✳ docs                            ⟳│
+│                                      │
+│ 2 leaders · 9 agents                 │
+└──────────────────────────────────────┘
 ```
 
 - Rows use the existing `subRow` look: tree lines, program icon, name,
@@ -219,8 +252,10 @@ different way to show sub-agents.
   for one without, as today.
 - With a filter on, rows that are kept only to show where a match sits
   (its ancestors) are dimmed.
-- Empty: "No leaders. A leader is an agent that started another with
-  `hc run`."
+- The tag text holds only the labels that are set: `role · profile`,
+  `role`, `profile`, or nothing.
+- Empty, Leaders scope: "No leaders. A leader is an agent that started
+  another with `hc run`." Empty, All scope: "No agents."
 
 ### 4.2 Filter panel
 
@@ -233,11 +268,9 @@ The ⚲ button opens a popup, the same way the sort menu opens
 │  ☑ worker            4      │
 │  ☐ sub-lead          1      │
 │  ☐ lead              1      │
-│  ☐ untagged          3      │
 │ Profile                     │
 │  ☐ poteto            3      │
 │  ☐ reviewer          1      │
-│  ☐ untagged          5      │
 │ Harness                     │
 │  ☐ claude-code       6  …   │
 │ Machine                     │
@@ -248,8 +281,9 @@ The ⚲ button opens a popup, the same way the sort menu opens
 └─────────────────────────────┘
 ```
 
-- The values and counts come from the current tree (`facets`). A value
-  shows only when some node has it.
+- The values and counts come from the current tree in the current scope
+  (`facets`). A value shows only when some node has it. A missing label is
+  not a value, so the popup has no "untagged" entry.
 - Inside one facet the values are OR. Across facets they are AND. The text
   search is AND with the rest. It matches name, address, role, profile
   and folder, ignoring case.
@@ -264,14 +298,12 @@ The ⚲ button opens a popup, the same way the sort menu opens
 `tagText(t)` appears in dim text after the name:
 
 ```
-Tab bar:   [ ◆ prime  lead · poteto  Lead of 3 ⟳ ]  [ ↳ ✳ fix  worker · poteto ⟳ ]
+Tab bar:   [ ◆ prime  lead · poteto  Lead of 3 ⟳ ]  [ ↳ ✳ fix  worker · poteto ⟳ ]  [ ✳ docs ⟳ ]
 Pane head: Sub-agent of prime  ✳ fix  worker · poteto   ~/repo        ⟳  ⊞ ⊟ ⤢ ×
 ```
 
-`tagText` returns text for a terminal that reports agent status or is part
-of a tree (it has a parent or children). An untagged one reads
-`untagged · untagged`. A plain shell outside any tree shows nothing, so
-every shell tab does not say "untagged".
+`tagText` holds only the labels that are set. A terminal with neither
+label shows exactly what it shows today (`docs` above).
 
 In this design, the "agent panel" means the Agents sidebar rows and the
 pane header.
@@ -286,7 +318,7 @@ program ──OSC 7501──▶ core ◀──hc label / hc run --label── ag
                  Herdr app: terminals()
                        │ re-render on change
                        ▼
-       nested-agents.render(): orgTree(terminals()) → filterTree → rows
+       nested-agents.render(): orgTree(terminals(), scope) → filterTree → rows
        nested-tabs / nested-pane.render(): tagText(t)
 ```
 
@@ -349,27 +381,33 @@ its `parent` is the parent's address, and `hc label <child> org.role=reviewer`
 changes the role.
 
 **F3. Nested leaders.** `test/org.test.js`, pure, on a fixture with lead →
-sub-lead → 2 workers, a lone agent and a plain shell. `orgTree` returns
-exactly one root (lead). Its kids are sub-lead and any direct workers. The
-sub-lead has `leader: true` and the 2 workers. The lone agent and the
-shell are not in the result. A second test builds the same 3 levels from
+sub-lead → 2 workers, a lone agent and a plain shell. `orgTree(…, "leaders")`
+returns exactly one root (lead). Its kids are sub-lead and any direct
+workers. The sub-lead has `leader: true` and the 2 workers. The lone agent
+and the shell are not in the result. `orgTree(…, "all")` returns two
+roots, the lead (same subtree) and the lone agent, and still not the
+shell. A second test builds the same 3 levels from
 fake agents on the scratch core and runs `orgTree` on the `hc get`
 records. A remote fixture (`vps/t3` with bare `parent: "t2"`) nests under
 `vps/t2`.
 
 **F4. Untagged.** `test/org.test.js`: terminals with no labels, empty
 labels, `labels: undefined`, a missing `report` and a missing `status`
-give `role == profile == "untagged"`, `harness == "none"` and
-`status == "none"`. `facets` counts them under `untagged`. Rendering the
-Leaders view with only untagged terminals does not throw and shows the
-text `untagged · untagged`.
+give `role`, `profile`, `harness` and `status` of `null`. `tagText`
+returns `null` for them, `"worker"` for a role alone and `"poteto"` for a
+profile alone. `facets` leaves `null` out, so no facet has an empty or
+"untagged" entry. Rendering the Org view in both scopes with only
+untagged terminals does not throw, shows a row per terminal, and has no
+text `untagged` anywhere in the tree.
 
 **F5. Display.** `test/render.test.js`, through the stubs: render
-`nested-agents` in Leaders sort on the F3 fixture. The tree contains a row
-per node in depth-first order with its `role · profile` text, and folding
-the sub-lead hides its 2 rows. Render `nested-tabs` and `nested-pane` for
-the worker's pane. Each contains `worker · poteto`. For a plain shell's
-pane, neither contains `untagged`.
+`nested-agents` in Org sort on the F3 fixture. The tree contains a row
+per node in depth-first order with its tag text, and folding the sub-lead
+hides its 2 rows. Clicking the scope toggle sets `shared("org.scope")`,
+and the next render adds the lone agent's row. Render `nested-tabs` and
+`nested-pane` for the worker's pane. Each contains `worker · poteto`. For
+an untagged agent's pane, the rendered text equals what it renders today
+with no labels.
 
 **F6. Filters.** `test/filter.test.js`, pure, on a fixed 12-terminal
 fixture: each facet alone, two values in one facet (OR), two facets (AND),
@@ -386,7 +424,8 @@ measures the time from the command to the first render that shows the
 change:
 (a) `hc label <worker> org.role=reviewer` → `reviewer · …` row;
 (b) start a child under a lead → a new row, and the lead becomes a leader;
-(c) `hc kill` the last child → the leader leaves the view.
+(c) `hc kill` the last child → the leader leaves the Leaders scope, and
+stays in the All scope.
 Pass when each is under 500 ms, the median of 5 runs. I will check that
 bound against a measured baseline first. This proves the core sends each
 fact and that the view keeps no stale state. It does not prove that the
@@ -412,7 +451,7 @@ with its test, and the whole suite passes before the next starts.
 
 | Risk | Effect | Handling |
 |---|---|---|
-| A kept terminal comes back as a shell with its old labels (§6). | The row says `poteto` on a plain shell. | The harness column shows `none`, which makes it plain. When the agent starts again, its hook writes the profile again. No auto-clear. |
+| A kept terminal comes back as a shell with its old labels (§6). | The row says `poteto` on a plain shell. | The shell reports no harness, so no harness shows. When the agent starts again, its hook writes the profile again. No auto-clear. |
 | A Codex hook is untrusted, or a sandbox blocks the hc socket. | No self-tag. | `herdr-org-launch` is the fallback. F1 tests both paths. |
 | `hc run` does not pass env (§8). | `HC_PROFILE=x hc run …` silently gives no profile. | The spawn sentence and the README use the launcher form only. |
 | A label re-render in the window is not observed (§9). | F7's automated part could pass while the window stays stale. | The scripted `herdr-app shot` check in F7. |
@@ -443,6 +482,6 @@ To make a terminal show up with a role and profile, a parent writes:
 hc run --bg --name <n> --label org.role=<role> -- herdr-org-launch <profile> <agent command>
 ```
 
-They get, for free: a row under their own row in the Leaders view, at any
+They get, for free: a row under their own row in the Org view, at any
 depth; `role · profile` on the child's tab and pane header; filter values
 for that role and profile; and live updates when either changes.
