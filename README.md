@@ -5,11 +5,13 @@ My Herdr mods and layout.
 ## Install
 
 ```sh
-git clone git@github.com:hassox/herdr-configs.git ~/Dev/personal/herdr-configs
-~/Dev/personal/herdr-configs/install.sh
+git clone git@github.com:hassox/herdr-configs.git hassox-herdr-configs
+cd hassox-herdr-configs
+./install.sh
 ```
 
-Herdr must be open. The script:
+Herdr must be open. The mods link to the clone, so if you move it, run
+`install.sh` again from the new place. The script:
 
 1. Links each folder in `mods/` into `~/.config/herdr-app/mods/`.
 2. Makes the layout `nested` from Herdr's `main` layout, if it does not exist.
