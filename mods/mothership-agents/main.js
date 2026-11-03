@@ -86,7 +86,7 @@ export default class Agents extends View {
         if (command === "org-scope") { setShared("org.scope", scopeOf().id === "all" ? "leaders" : "all"); continue; }
         const next = command === "next" ? MODES[(MODES.indexOf(modeOf()) + 1) % MODES.length] : MODES.find((m) => m.id === command);
         if (!next) continue;
-        setShared("nested.mode", next.id);
+        setShared("mothership.mode", next.id);
         notify({ title: `Sub-agents: ${next.label}`, timeout: 2000 });
       }
     });
@@ -173,7 +173,7 @@ export default class Agents extends View {
       .bg(t.popover)
       .text_size(12.8)
       .children(section("Sort agents", "agents.sort", SORTS, sortOf().id))
-      .children(section("Sub-agents", "nested.mode", MODES, modeOf().id));
+      .children(section("Sub-agents", "mothership.mode", MODES, modeOf().id));
   }
 
   peek(addr) {
@@ -302,8 +302,8 @@ export default class Agents extends View {
         .text_color(parseQuery(shared("org.filter") ?? "").words.length || KEYS.some((key) => parseQuery(shared("org.filter") ?? "")[key].length) ? t.accent : t.dim)
         .hover((el) => el.text_color(t.foreground))
         .tooltip("Filter")
-        .on_click(() => openOverlay({ mod: "nested-agents", kind: "popup", width: 240, height: 420, props: { filterMenu: true } }))
-        .child(svg("mods/nested-agents/filter.svg").size(14)));
+        .on_click(() => openOverlay({ mod: "mothership-agents", kind: "popup", width: 240, height: 420, props: { filterMenu: true } }))
+        .child(svg("mods/mothership-agents/filter.svg").size(14)));
   }
 
   orgSearch(t) {
@@ -592,7 +592,7 @@ export default class Agents extends View {
                 .text_size(11)
                 .text_color(t.dim)
                 .hover((s) => s.text_color(t.foreground))
-                .on_click(() => openOverlay({ mod: "nested-agents", kind: "popup", width: 224, height: 320, props: { sortMenu: true } }))
+                .on_click(() => openOverlay({ mod: "mothership-agents", kind: "popup", width: 224, height: 320, props: { sortMenu: true } }))
                 .tooltip(`Sort agents: ${sort.label}`)
                 .child(svg(`mods/workspace-chrome/${sort.icon}.svg`).size(14)),
             )),

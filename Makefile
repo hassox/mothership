@@ -1,5 +1,5 @@
 APP ?= $(HOME)/.config/herdr-app
-LAYOUT := nested
+LAYOUT := mothership
 MODS := $(notdir $(wildcard mods/*))
 
 .NOTPARALLEL:
@@ -7,7 +7,7 @@ MODS := $(notdir $(wildcard mods/*))
 
 all: $(MODS) launcher plugin
 
-nested-spaces: nested-agents nested-crew
+mothership-spaces: mothership-agents mothership-crew
 
 $(MODS): layout
 	sh scripts/install-mod.sh "$(APP)" $(LAYOUT) $@

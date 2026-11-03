@@ -1,5 +1,5 @@
 // A pane's header, for layouts that frame their panes:
-//   { "tab": "active", "pane": { "header": { "content": { "mod": "nested-pane" } } } }
+//   { "tab": "active", "pane": { "header": { "content": { "mod": "mothership-pane" } } } }
 // Shows the program's icon (the app's program table), the agent's name or
 // the terminal's title, the folder, and the agent's status; buttons split, zoom and close
 // this pane. Props from the app: { pane, terminal }. Click: focus the pane.
@@ -39,7 +39,7 @@ export default class Pane extends View {
         cx.stop_propagation();
         run(command, args);
       })
-      .child(svg(`mods/nested-pane/${icon}.svg`).size(14));
+      .child(svg(`mods/mothership-pane/${icon}.svg`).size(14));
   }
 
   leader(t, pane, up) {
@@ -62,7 +62,7 @@ export default class Pane extends View {
         cx.stop_propagation();
         run("agent.focus", { terminal: up.address });
       })
-      .child(svg("mods/nested-pane/alien.svg").size(13).flex_none().text_color(t.accent))
+      .child(svg("mods/mothership-pane/alien.svg").size(13).flex_none().text_color(t.accent))
       .child(subOf({ parent: up }));
   }
 

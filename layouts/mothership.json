@@ -4,7 +4,7 @@
     "name": "main",
     "version": "0.1.12"
   },
-  "preview": "layouts/nested.png",
+  "preview": "layouts/mothership.png",
   "type": "row",
   "children": [
     {
@@ -30,7 +30,7 @@
               "id": "spaces",
               "type": "block",
               "content": {
-                "mod": "nested-spaces"
+                "mod": "mothership-spaces"
               },
               "size": {
                 "weight": 1
@@ -41,7 +41,7 @@
               "id": "agents",
               "type": "block",
               "content": {
-                "mod": "nested-agents"
+                "mod": "mothership-agents"
               },
               "size": {
                 "weight": 1
@@ -80,7 +80,7 @@
           "id": "tabs",
           "type": "block",
           "content": {
-            "mod": "nested-tabs"
+            "mod": "mothership-tabs"
           },
           "size": {
             "px": 42
@@ -99,7 +99,7 @@
                 "pane": {
                   "header": {
                     "content": {
-                      "mod": "nested-pane"
+                      "mod": "mothership-pane"
                     },
                     "reveal": "always",
                     "height": 30,
@@ -161,7 +161,7 @@
           "id": "status",
           "type": "block",
           "content": {
-            "mod": "nested-status"
+            "mod": "mothership-status"
           },
           "size": {
             "px": 28

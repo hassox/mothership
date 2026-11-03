@@ -1,6 +1,6 @@
-# herdr-configs
+# Mothership
 
-A Herdr layout, `nested`, for agents that start other agents. The Agents
+A Herdr layout for agents that start other agents. The Agents
 list shows your agents as an org: each leader with the agents it started,
 with each agent's role and profile, and a search across them. A plugin
 makes agents tag themselves.
@@ -23,17 +23,17 @@ make
 `make` installs everything. To install only some pieces, name them:
 
 ```sh
-make nested-agents nested-pane
+make mothership-agents mothership-pane
 ```
 
 | Name | What it adds | Also installs |
 |---|---|---|
-| `nested-agents` | The Agents list: the Org view, the sub-agent mode menu and Follow mode. | |
-| `nested-pane` | The pane header: tags, *Lead of N*, the leader button. | |
-| `nested-tabs` | The tab bar: tags, the `↳` and *Lead of N* marks. | |
-| `nested-status` | The status bar: the focused terminal's mark. | |
-| `nested-spaces` | The Spaces list: the Tree, Dots and Agents tab modes. | `nested-agents` (it has the mode menu), `nested-crew` |
-| `nested-crew` | The Agents tab that the Agents tab mode opens. | |
+| `mothership-agents` | The Agents list: the Org view, the sub-agent mode menu and Follow mode. | |
+| `mothership-pane` | The pane header: tags, *Lead of N*, the leader button. | |
+| `mothership-tabs` | The tab bar: tags, the `↳` and *Lead of N* marks. | |
+| `mothership-status` | The status bar: the focused terminal's mark. | |
+| `mothership-spaces` | The Spaces list: the Tree, Dots and Agents tab modes. | `mothership-agents` (it has the mode menu), `mothership-crew` |
+| `mothership-crew` | The Agents tab that the Agents tab mode opens. | |
 | `launcher` | `herdr-org-launch` in `~/.local/bin`. | |
 | `plugin` | The `hc-context` plugin in each harness on `PATH`: Claude Code, Codex, Grok Build, `agy` and pi. | |
 
@@ -45,15 +45,15 @@ Each mod:
 1. Is copied into `~/.config/herdr-app/mods/<name>/` and checked with
    `herdr-app check`. `make` stops rather than replace a folder there that
    it did not install (one without a `.herdr-configs` file).
-2. Takes the place of the Herdr mod it was cloned from in your `nested`
-   layout. `make` creates `nested` from Herdr's `main` the first time, so
+2. Takes the place of the Herdr mod it was cloned from in your `mothership`
+   layout. `make` creates `mothership` from Herdr's `main` the first time, so
    the panels you did not install stay Herdr's own. It also sets the
    layout's Settings picture.
-3. Switches the window to `nested`.
+3. Switches the window to `mothership`.
 
 `layout.switch` (`cmd-shift-l` on macOS) switches layouts, so `main` is
 one key away. Installing fewer mods later does not swap the others back;
-delete `~/.config/herdr-app/layouts/nested.json` and run `make` with the
+delete `~/.config/herdr-app/layouts/mothership.json` and run `make` with the
 names you want.
 
 After you edit a mod here, run `make` again. Herdr reloads a mod, in every
@@ -83,7 +83,7 @@ Then run `make`.
 ## The Org view
 
 Choose **Org** in the sort menu at the right of the Agents header, or run
-`nested-agents.org`.
+`mothership-agents.org`.
 
 - **Leaders | All.** A leader is an agent with no parent, or any terminal
   whose agents it started are still running. Leaders shows only leaders,
@@ -98,7 +98,7 @@ Choose **Org** in the sort menu at the right of the Agents header, or run
   whichever is more urgent, at every depth, so the path to the agent that
   needs you is at the top. Rows that rank the same keep their order.
   `agent.next` and `agent.prev` follow the rows as shown.
-  `nested-agents.org-scope` flips the two, so you can bind it to a key.
+  `mothership-agents.org-scope` flips the two, so you can bind it to a key.
 - **Rows.** Each row shows the agent's role and profile, `worker · poteto`.
   Only the labels that are set show; an untagged agent shows none. A
   top-level agent is named by where it shows, `acme-api / 1`. Click a row
@@ -170,15 +170,15 @@ Pick a mode in the sort menu in the Agents header, or run a command:
 
 | Mode | Command | What you see |
 |---|---|---|
-| Follow selected space (default) | `nested-agents.follow` | The Agents list shows only the selected space's agents, with their sub-agents under them. |
-| Tree in Spaces | `nested-agents.tree` | A space row shows its sub-agent count and most urgent status. Click it to list the sub-agents under the row. |
-| Dots in Spaces | `nested-agents.dots` | One dot per sub-agent on its space row. Click the dots for a card with each one's status and report. |
-| Agents tab | `nested-agents.tab` | A count on the space row. Click it to open an Agents tab with a card per sub-agent and the last lines of its screen. |
-| Off | `nested-agents.off` | Herdr's own behavior. |
+| Follow selected space (default) | `mothership-agents.follow` | The Agents list shows only the selected space's agents, with their sub-agents under them. |
+| Tree in Spaces | `mothership-agents.tree` | A space row shows its sub-agent count and most urgent status. Click it to list the sub-agents under the row. |
+| Dots in Spaces | `mothership-agents.dots` | One dot per sub-agent on its space row. Click the dots for a card with each one's status and report. |
+| Agents tab | `mothership-agents.tab` | A count on the space row. Click it to open an Agents tab with a card per sub-agent and the last lines of its screen. |
+| Off | `mothership-agents.off` | Herdr's own behavior. |
 
-`nested-agents.next` goes to the next mode. To bind it to a key, add it to
+`mothership-agents.next` goes to the next mode. To bind it to a key, add it to
 `~/.config/herdr-app/keys.json`, for example
-`"global": { "cmd-shift-m": "nested-agents.next" }`.
+`"global": { "cmd-shift-m": "mothership-agents.next" }`.
 
 ## Sub-agent and lead marks
 
@@ -197,14 +197,14 @@ These show in every mode, Off included.
 
 - `Makefile` and `scripts/`: the install. `scripts/swap-layout.py` puts a
   mod in the place of the Herdr mod it was cloned from.
-- `layouts/nested.json`: the full layout, a clone of Herdr's `main` 0.1.12
+- `layouts/mothership.json`: the full layout, a clone of Herdr's `main` 0.1.12
   with every mod swapped in, for herdr.dev. `make` builds yours from `main`
   instead, so it holds only the mods you install.
-- `mods/`: clones of Herdr's 0.1.12 mods. `nested-agents` (`agents`) has
-  the Org view, the modes and the Follow filter. `nested-spaces` (`spaces`)
-  has the Tree, Dots and Agents tab chips. `nested-tabs` (`tabs`),
-  `nested-pane` (`pane`) and `nested-status` (`workspace-status`) have the
-  marks. `nested-crew` is the Agents tab; it reads each sub-agent's screen
+- `mods/`: clones of Herdr's 0.1.12 mods. `mothership-agents` (`agents`) has
+  the Org view, the modes and the Follow filter. `mothership-spaces` (`spaces`)
+  has the Tree, Dots and Agents tab chips. `mothership-tabs` (`tabs`),
+  `mothership-pane` (`pane`) and `mothership-status` (`workspace-status`) have the
+  marks. `mothership-crew` is the Agents tab; it reads each sub-agent's screen
   and branch every 5 seconds, only while the tab is in front.
 - `shared/`: `subagents.js` (parents, sub-agent trees, marks) and `org.js`
   (the org tree, search, filter values, tag text). Herdr loads only files

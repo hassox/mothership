@@ -9,7 +9,7 @@ export const MODES = [
   { id: "tab", label: "Agents tab", icon: "files" },
   { id: "off", label: "Off", icon: "minus" },
 ];
-export const modeOf = () => MODES.find((m) => m.id === shared("nested.mode")) ?? MODES[0];
+export const modeOf = () => MODES.find((m) => m.id === shared("mothership.mode")) ?? MODES[0];
 
 export const RANK = { blocked: 4, done: 3, working: 2, idle: 1 };
 

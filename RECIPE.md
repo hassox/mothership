@@ -1,4 +1,4 @@
-# Nested
+# Mothership
 
 Herdr's `main` layout, rebuilt around agents that start other agents. The
 Agents list can show your agents as an org: each leader with the agents it
@@ -7,7 +7,7 @@ box filters the org by name, role, profile, harness, machine or status.
 Sub-agents are marked in the tab bar, the pane header and the status bar,
 and a sub-agent's pane header takes you to its leader in one click.
 
-![Nested](preview.png)
+![Mothership](preview.png)
 
 ## What you see
 
@@ -72,20 +72,20 @@ no tag text at all.
   `agent.focus` on the parent; clicking again at that leader goes up one
   more level. Its tooltip is "Take me to your leader: <name> · <role> ·
   <profile>".
-- **Commands.** `nested-agents.org` selects the Org view.
-  `nested-agents.org-scope` flips Leaders and All. The sub-agent modes are
-  `nested-agents.follow`, `.tree`, `.dots`, `.tab`, `.off` and `.next`.
+- **Commands.** `mothership-agents.org` selects the Org view.
+  `mothership-agents.org-scope` flips Leaders and All. The sub-agent modes are
+  `mothership-agents.follow`, `.tree`, `.dots`, `.tab`, `.off` and `.next`.
 - **Live.** Every view rebuilds from Herdr's `terminals()` on each render,
   so a new label, a new child or an ended child shows at once. Nothing
   polls.
 
 ## Built from
 
-- **Layout.** `layouts/nested.json`, a clone of `main` 0.1.12 whose blocks
-  name the `nested-*` mods; `"preview": "layouts/nested.png"`.
-- **Mods.** Clones of Herdr's 0.1.12 mods: `nested-agents` (`agents`),
-  `nested-spaces` (`spaces`), `nested-tabs` (`tabs`), `nested-pane`
-  (`pane`), `nested-status` (`workspace-status`). Plus `nested-crew`, the
+- **Layout.** `layouts/mothership.json`, a clone of `main` 0.1.12 whose blocks
+  name the `mothership-*` mods; `"preview": "layouts/mothership.png"`.
+- **Mods.** Clones of Herdr's 0.1.12 mods: `mothership-agents` (`agents`),
+  `mothership-spaces` (`spaces`), `mothership-tabs` (`tabs`), `mothership-pane`
+  (`pane`), `mothership-status` (`workspace-status`). Plus `mothership-crew`, the
   Agents tab, which runs `hc read` and `git branch --show-current` every
   5 s while it is in front.
 - **Shared code.** `shared/subagents.js` (parents, sub-agent trees, marks)
@@ -94,7 +94,7 @@ no tag text at all.
 - **Data.** `terminals()`: `parent`, `labels["org.role"]`,
   `labels["org.profile"]`, `labels.where`, `labels["herdr.space"]`,
   `status`, `report.app`. `shared()`: `agents.sort`, `org.scope`,
-  `org.filter`, `nested.mode`.
+  `org.filter`, `mothership.mode`.
 - **Commands it runs.** `pane.focus`, `terminal.peek`, `agent.focus`,
   `terminal.pin`, `space.select`, `layout.resize`.
 - **Tags come from outside the layout.** `org.role` is set by the agent that
@@ -102,7 +102,7 @@ no tag text at all.
   set by the agent itself: the `hc-context` plugin's start hook, or
   `herdr-org-launch <profile> <command>`, runs
   `hc label "$HC_TERMINAL_ID" org.profile=<profile>`.
-- **Art.** `mods/nested-agents/filter.svg`, `mods/nested-pane/alien.svg`,
+- **Art.** `mods/mothership-agents/filter.svg`, `mods/mothership-pane/alien.svg`,
   and Herdr's `workspace-chrome` icons.
 
 ## Watch out

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { scratchCore, FAKE } from "./core.js";
 import { state, cx, texts, findId } from "./preload.js";
-import Agents from "../mods/nested-agents/main.js";
+import Agents from "../mods/mothership-agents/main.js";
 
 const core = scratchCore();
 const terminals = new Map();

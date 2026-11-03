@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { state, cx, texts, findId, click } from "./preload.js";
 import { all, lone } from "./fixture.js";
-import Agents from "../mods/nested-agents/main.js";
-import Tabs from "../mods/nested-tabs/main.js";
-import Pane from "../mods/nested-pane/main.js";
+import Agents from "../mods/mothership-agents/main.js";
+import Tabs from "../mods/mothership-tabs/main.js";
+import Pane from "../mods/mothership-pane/main.js";
 
 const program = { key: "pi", name: "pi", agent: true };
 const space = { id: "s1", name: "prime", active: true, tabs: [{ id: "tb1", name: "r-ui", named: true, active: true, status: null }, { id: "tb2", name: "notes", named: true, active: false, status: null }] };

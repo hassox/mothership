@@ -257,9 +257,9 @@ export default class Spaces extends View {
 
   openCrew(w) {
     const tabs = new Set(w.tabs.map((x) => x.id));
-    const pane = panes().find((p) => p.mod === "nested-crew" && tabs.has(p.tab));
+    const pane = panes().find((p) => p.mod === "mothership-crew" && tabs.has(p.tab));
     if (pane) run("pane.focus", { pane: pane.pane });
-    else run("tab.new", { space: w.id, name: "Agents", mod: "nested-crew", props: { space: w.id } });
+    else run("tab.new", { space: w.id, name: "Agents", mod: "mothership-crew", props: { space: w.id } });
   }
 
   nest(w, t) {
@@ -279,7 +279,7 @@ export default class Spaces extends View {
     }
     if (this.mode === "dots") {
       return chip.px(3).gap(3)
-        .on_click(() => openOverlay({ mod: "nested-spaces", kind: "popup", width: 360, height: Math.min(440, 52 + 50 * subs.length), props: { card: w.id } }))
+        .on_click(() => openOverlay({ mod: "mothership-spaces", kind: "popup", width: 360, height: Math.min(440, 52 + 50 * subs.length), props: { card: w.id } }))
         .children(subs.length > 6 ? [div().text_size(11).text_color(t.muted).child(String(subs.length)), badge(t, top)] : subs.map((s) => dot(t, kidStatus(s.t))));
     }
     return chip.min_w(20).px(6).rounded(9).border(1).border_color(tone(t, top) + "88").justify_center()

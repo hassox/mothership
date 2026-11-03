@@ -10,26 +10,26 @@ const plan = (...goals) => {
 };
 
 test("a mod brings the mods it needs, and nothing else", () => {
-  expect(plan("nested-spaces")).toEqual(["install-layout", "nested-agents", "nested-crew", "nested-spaces"]);
-  expect(plan("nested-pane")).toEqual(["install-layout", "nested-pane"]);
-  expect(plan("nested-pane", "nested-tabs")).toEqual(["install-layout", "nested-pane", "nested-tabs"]);
+  expect(plan("mothership-spaces")).toEqual(["install-layout", "mothership-agents", "mothership-crew", "mothership-spaces"]);
+  expect(plan("mothership-pane")).toEqual(["install-layout", "mothership-pane"]);
+  expect(plan("mothership-pane", "mothership-tabs")).toEqual(["install-layout", "mothership-pane", "mothership-tabs"]);
 });
 
 test("make with no names installs every mod, the launcher and the plugin", () => {
   const all = plan();
-  expect(all.filter((s) => s.startsWith("nested-")).sort()).toEqual(["nested-agents", "nested-crew", "nested-pane", "nested-spaces", "nested-status", "nested-tabs"]);
+  expect(all.filter((s) => s.startsWith("mothership-")).sort()).toEqual(["mothership-agents", "mothership-crew", "mothership-pane", "mothership-spaces", "mothership-status", "mothership-tabs"]);
   expect(all).toContain("launcher");
   expect(all).toContain("install-plugin");
 });
 
 test("installing a mod swaps only the block of the Herdr mod it was cloned from", () => {
-  const file = join(mkdtempSync("/tmp/hcl."), "nested.json");
+  const file = join(mkdtempSync("/tmp/hcl."), "mothership.json");
   const layout = { id: "root", children: [{ content: { mod: "agents" } }, { content: { mod: "tabs" } }], pane: { header: { content: { mod: "pane" } } } };
   writeFileSync(file, JSON.stringify(layout));
   const swap = (mod) => Bun.spawnSync(["python3", "scripts/swap-layout.py", file, `mods/${mod}`], { cwd: ROOT });
-  swap("nested-agents");
-  swap("nested-crew");
-  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ ...layout, children: [{ content: { mod: "nested-agents" } }, { content: { mod: "tabs" } }] });
-  swap("nested-pane");
-  expect(JSON.parse(readFileSync(file, "utf8")).pane.header.content.mod).toBe("nested-pane");
+  swap("mothership-agents");
+  swap("mothership-crew");
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ ...layout, children: [{ content: { mod: "mothership-agents" } }, { content: { mod: "tabs" } }] });
+  swap("mothership-pane");
+  expect(JSON.parse(readFileSync(file, "utf8")).pane.header.content.mod).toBe("mothership-pane");
 });

@@ -16,7 +16,7 @@ export default class Crew extends View {
 
   shown() {
     const tab = focused()?.tab;
-    return window()?.active && focused()?.space === props()?.space && panes().some((p) => p.mod === "nested-crew" && p.tab === tab);
+    return window()?.active && focused()?.space === props()?.space && panes().some((p) => p.mod === "mothership-crew" && p.tab === tab);
   }
 
   read(cx) {
