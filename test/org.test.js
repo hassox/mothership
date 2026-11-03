@@ -40,7 +40,7 @@ describe("F3 nested leaders", () => {
 
 describe("names", () => {
   test("a row is named by its terminal name, then where a top-level one is shown, then its program", () => {
-    const where = { address: "t20", state: "live", status: "idle", report: {}, where: "prime / 1", program: { name: "Claude Code" } };
+    const where = { address: "t20", state: "live", status: "idle", report: {}, labels: { where: "prime / 1" }, program: { name: "Claude Code" } };
     const names = orgTree([where, { ...where, address: "t21", parent: "t20" }, { ...where, address: "t22", parent: "t20", name: "fix" }], "all")[0];
     expect([names.name, ...names.kids.map((k) => k.name)]).toEqual(["prime / 1", "Claude Code", "fix"]);
   });

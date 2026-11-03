@@ -20,6 +20,7 @@ export const kidStatus = (k, listed = new Map()) => {
 
 export const topStatus = (subs) => subs.map((s) => kidStatus(s.t)).reduce((m, s) => ((RANK[s] ?? 0) > (RANK[m] ?? 0) ? s : m), null);
 export const nameOf = (k) => k.name || k.template || k.program?.name || k.address;
+export const whereOf = (k) => k.labels?.where || null;
 export const sayOf = (k) => (typeof k.report === "string" ? k.report : k.report?.msg) ?? "";
 
 const prefix = (addr) => (addr.includes("/") ? `${addr.split("/")[0]}/` : "");
@@ -55,7 +56,7 @@ export function roles(all) {
   };
 }
 
-export const subOf = (r) => `Sub-agent of ${r.parent.name || r.parent.where || nameOf(r.parent)}`;
+export const subOf = (r) => `Sub-agent of ${r.parent.name || whereOf(r.parent) || nameOf(r.parent)}`;
 
 export function leadChip(t, r) {
   if (!r?.subs) return null;

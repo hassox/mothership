@@ -1,4 +1,4 @@
-import { kidsByParent, parentOf, nameOf } from "./subagents.js";
+import { kidsByParent, parentOf, nameOf, whereOf } from "./subagents.js";
 
 export const KEYS = ["role", "profile", "harness", "machine", "status"];
 export const SCOPES = [
@@ -21,7 +21,7 @@ export function orgTree(all, scope) {
     return {
       t: k,
       address: k.address,
-      name: k.name || (k.parent ? null : k.where) || nameOf(k),
+      name: k.name || (k.parent ? null : whereOf(k)) || nameOf(k),
       role: label(k, "org.role"),
       profile: label(k, "org.profile"),
       harness: k.report?.app ?? null,
