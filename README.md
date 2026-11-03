@@ -15,8 +15,8 @@ and All scopes, a search, and a sub-agent's leader button.
 Herdr must be open.
 
 ```sh
-git clone git@github.com:hassox/herdr-configs.git hassox-herdr-configs
-cd hassox-herdr-configs
+git clone git@github.com:hassox/mothership.git
+cd mothership
 make
 ```
 
@@ -44,7 +44,7 @@ Each mod:
 
 1. Is copied into `~/.config/herdr-app/mods/<name>/` and checked with
    `herdr-app check`. `make` stops rather than replace a folder there that
-   it did not install (one without a `.herdr-configs` file).
+   it did not install (one without a `.mothership` file).
 2. Takes the place of the Herdr mod it was cloned from in your `mothership`
    layout. `make` creates `mothership` from Herdr's `main` the first time, so
    the panels you did not install stay Herdr's own. It also sets the

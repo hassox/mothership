@@ -1,5 +1,5 @@
 {
-  "name": "herdr-configs",
+  "name": "mothership",
   "private": true,
   "scripts": {
     "test": "bun test",

@@ -1,6 +1,6 @@
 {
-  "name": "hassox-herdr-configs",
-  "interface": { "displayName": "hassox herdr-configs" },
+  "name": "hassox-mothership",
+  "interface": { "displayName": "hassox mothership" },
   "plugins": [
     {
       "name": "hc-context",

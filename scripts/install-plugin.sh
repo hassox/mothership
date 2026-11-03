@@ -2,7 +2,7 @@
 set -eu
 
 plugin="$(pwd)/plugins/hc-context"
-marketplace=hassox-herdr-configs
+marketplace=hassox-mothership
 has() { command -v "$1" >/dev/null 2>&1; }
 
 if has claude; then
