@@ -19,35 +19,9 @@ for mod in "$REPO"/mods/*/; do
   herdr-app check "$target"
 done
 
-if [ ! -e "$APP/layouts/$LAYOUT.json" ]; then
-  herdr-app do layout.clone "{\"name\":\"main\",\"as\":\"$LAYOUT\"}" >/dev/null
-fi
-
-python3 - "$APP/layouts/$LAYOUT.json" "$REPO/mods" <<'PY'
-import json, pathlib, sys
-
-layout, mods = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-swap = {}
-for meta in mods.glob("*/mod.json"):
-    source = json.loads(meta.read_text()).get("cloned_from", {}).get("name")
-    if source:
-        swap[source] = meta.parent.name
-
-def walk(node):
-    if isinstance(node, dict):
-        if node.get("mod") in swap:
-            node["mod"] = swap[node["mod"]]
-        for value in node.values():
-            walk(value)
-    elif isinstance(node, list):
-        for value in node:
-            walk(value)
-
-tree = json.loads(layout.read_text())
-walk(tree)
-layout.write_text(json.dumps(tree, indent=2) + "\n")
-print("layout", layout.name, "uses", ", ".join(f"{a} -> {b}" for a, b in swap.items()))
-PY
+mkdir -p "$APP/layouts"
+cp "$REPO/layouts/$LAYOUT.png" "$APP/layouts/"
+[ -e "$APP/layouts/$LAYOUT.json" ] || cp "$REPO/layouts/$LAYOUT.json" "$APP/layouts/"
 
 herdr-app do layout.switch "{\"name\":\"$LAYOUT\"}" >/dev/null
 
