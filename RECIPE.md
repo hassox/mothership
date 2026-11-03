@@ -55,6 +55,10 @@ no tag text at all.
   the most urgent status anywhere in its team, and its tooltip gives the
   breakdown ("3 reports · team: 1 needs you, 2 working"). A sub-agent
   without a pane is not tracked as seen, so its `done` counts as idle.
+- **Order.** At every depth, rows rank by the more urgent of their own
+  status and their team's: needs you, done, working, idle. Equal ranks keep
+  Herdr's order. The Org view sets `setAgentOrder` to its rows, so
+  `agent.next` and `agent.prev` follow them.
 - **Search.** A bare word matches name, address, role, profile or folder.
   `role:`, `profile:`, `harness:`, `machine:` and `status:` match one field.
   The same key twice is OR; different keys and words are AND. Quotes keep

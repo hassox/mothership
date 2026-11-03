@@ -64,6 +64,27 @@ describe("status", () => {
   });
 });
 
+describe("order", () => {
+  const roots = (listed) => orgTree(all, "all", new Map(Object.entries(listed))).map((n) => n.address);
+
+  test("whatever needs you rises to the top, then done, then working, then idle", () => {
+    expect(roots({})).toEqual(["t1", "t6", "vps/t2"]);
+    expect(roots({ t6: "blocked", t3: "idle" })).toEqual(["t6", "t1", "vps/t2"]);
+    expect(roots({ t3: "idle", "vps/t2": "done" })).toEqual(["vps/t2", "t1", "t6"]);
+  });
+
+  test("a leader rises with its team, and siblings sort the same way at every depth", () => {
+    const [prime] = orgTree(all, "all", new Map([["t3", "idle"], ["t4", "idle"], ["t5", "blocked"]]));
+    expect(prime.kids.map((k) => k.address)).toEqual(["t5", "t2"]);
+    const [lead] = orgTree(all, "all", new Map([["t3", "idle"], ["t4", "blocked"]]));
+    expect(lead.kids[0].kids.map((k) => k.address)).toEqual(["t4", "t3"]);
+  });
+
+  test("the leaders scope keeps the order its hidden reports earn", () => {
+    expect(orgTree(all, "leaders", new Map([["vps/t3", "blocked"], ["t3", "idle"]])).map((n) => n.address)).toEqual(["vps/t2", "t1", "t6"]);
+  });
+});
+
 describe("names", () => {
   test("a row is named by its terminal name, then where a top-level one is shown, then its program", () => {
     const where = { address: "t20", state: "live", status: "idle", report: {}, labels: { where: "prime / 1" }, program: { name: "Claude Code" } };

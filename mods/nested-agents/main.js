@@ -225,12 +225,15 @@ export default class Agents extends View {
 
   orgRows(t, roots, shown) {
     const rows = [];
+    const order = [];
     const walk = (nodes, lead) => nodes.forEach((n, i) => {
       const last = i === nodes.length - 1;
+      order.push(n.address);
       rows.push(this.orgRow(t, n, lead ? [...lead, last ? "└" : "├"] : [], shown));
       if (n.kids.length && !this.folded.has(`org:${n.address}`)) walk(n.kids, lead ? [...lead, last ? "" : "│"] : []);
     });
     walk(roots, null);
+    setAgentOrder(order);
     return rows;
   }
 

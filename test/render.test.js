@@ -48,6 +48,13 @@ describe("F5 display", () => {
     expect(texts(findId(t, "org-t5")).some((s) => s.includes("·") || s.includes("untagged"))).toBe(false);
   });
 
+  test("agent.next follows the Org view's rows", () => {
+    state.agents = [{ address: "t6", status: "blocked" }, { address: "t3", status: "idle" }];
+    const t = sidebar().tree();
+    expect(rowIds(t)[0]).toBe("t6");
+    expect(state.order).toEqual(rowIds(t));
+  });
+
   test("folding a nested leader hides its children", () => {
     const { tree } = sidebar();
     click(findId(tree(), "org-fold-t2"));

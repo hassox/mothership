@@ -70,6 +70,11 @@ Choose **Org** in the sort menu at the right of the Agents header, or run
   idle. A leader whose reports are hidden or folded shows their count in
   the color of the most urgent status anywhere in its team; hover it for
   the breakdown, such as "3 reports · team: 1 needs you, 2 working".
+- **Order.** Whatever needs you comes first, then done, then working, then
+  idle, as in Priority. A row ranks by its own status or its team's,
+  whichever is more urgent, at every depth, so the path to the agent that
+  needs you is at the top. Rows that rank the same keep their order.
+  `agent.next` and `agent.prev` follow the rows as shown.
   `nested-agents.org-scope` flips the two, so you can bind it to a key.
 - **Rows.** Each row shows the agent's role and profile, `worker · poteto`.
   Only the labels that are set show; an untagged agent shows none. A

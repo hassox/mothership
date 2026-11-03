@@ -6,6 +6,8 @@ export const SCOPES = [
   { id: "all", label: "All" },
 ];
 
+const urgency = (n) => Math.max(RANK[n.status] ?? 0, RANK[n.urgent] ?? 0);
+const byUrgency = (nodes) => nodes.sort((a, b) => urgency(b) - urgency(a));
 const label = (k, key) => k.labels?.[key]?.trim() || null;
 const isAgent = (k) => k.status != null || k.report != null;
 
@@ -17,7 +19,7 @@ export function orgTree(all, scope, listed = new Map()) {
   const live = new Set(all.filter((k) => k.state === "live").map((k) => k.address));
   const by = kidsByParent(all, false);
   const node = (k, top) => {
-    const kids = (by.get(k.address) ?? []).map((c) => node(c, false));
+    const kids = byUrgency((by.get(k.address) ?? []).map((c) => node(c, false)));
     const tally = {};
     const add = (s, n = 1) => s && (tally[s] = (tally[s] ?? 0) + n);
     for (const c of kids) {
@@ -41,10 +43,10 @@ export function orgTree(all, scope, listed = new Map()) {
     };
   };
   const leadersOnly = (n) => ({ ...n, kids: n.kids.filter((c) => c.leader).map(leadersOnly) });
-  const roots = all
+  const roots = byUrgency(all
     .filter((k) => k.state === "live" && !live.has(parentOf(k)))
     .map((k) => node(k, true))
-    .filter((n) => n.leader);
+    .filter((n) => n.leader));
   return scope === "all" ? roots : roots.map(leadersOnly);
 }
 
