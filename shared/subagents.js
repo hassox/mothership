@@ -26,6 +26,15 @@ export const sayOf = (k) => (typeof k.report === "string" ? k.report : k.report?
 const prefix = (addr) => (addr.includes("/") ? `${addr.split("/")[0]}/` : "");
 export const parentOf = (k) => (k.parent ? (k.parent.includes("/") ? k.parent : prefix(k.address) + k.parent) : null);
 
+export function spaceOf(all, addr) {
+  const byAddress = new Map(all.map((k) => [k.address, k]));
+  for (let k = byAddress.get(addr); k; k = byAddress.get(parentOf(k))) {
+    const space = k.labels?.["herdr.space"];
+    if (space) return prefix(k.address) + space;
+  }
+  return null;
+}
+
 export function kidsByParent(all, hidePlaced) {
   const by = new Map();
   for (const k of all) {
