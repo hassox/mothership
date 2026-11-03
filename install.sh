@@ -46,4 +46,5 @@ layout.write_text(json.dumps(tree, indent=2) + "\n")
 print("layout", layout.name, "uses", ", ".join(f"{a} -> {b}" for a, b in swap.items()))
 PY
 
+herdr-app do layout.switch "{\"name\":\"main\"}" >/dev/null
 herdr-app do layout.switch "{\"name\":\"$LAYOUT\"}" >/dev/null

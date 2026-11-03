@@ -16,12 +16,14 @@ Herdr must be open. The mods link to the clone, so if you move it, run
 1. Links each folder in `mods/` into `~/.config/herdr-app/mods/`.
 2. Makes the layout `nested` from Herdr's `main` layout, if it does not exist.
 3. Points that layout at the mods here, in place of the Herdr mods they were cloned from.
-4. Switches the window to `nested` and checks each mod.
+4. Checks each mod, then switches the window to `main` and back to `nested`, which loads the new files.
 
 `layout.switch` (`cmd-shift-l` on macOS) switches layouts, so `main` is one key away.
 
 After you edit a mod here, run `install.sh` again. Herdr does not see edits
-made through a link; re-making the link reloads the mod.
+made through a link, and it keeps a mod loaded from where the link pointed
+when it first loaded. A layout starts its mods fresh, so the script switches
+to `main` and back to `nested` to load the new files.
 
 ## Sub-agent modes
 
