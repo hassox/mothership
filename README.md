@@ -10,20 +10,21 @@ cd hassox-herdr-configs
 ./install.sh
 ```
 
-Herdr must be open. The mods link to the clone, so if you move it, run
-`install.sh` again from the new place. The script:
+Herdr must be open. The script:
 
-1. Links each folder in `mods/` into `~/.config/herdr-app/mods/`.
+1. Copies each folder in `mods/` into `~/.config/herdr-app/mods/`. It
+   replaces only folders it installed before (they hold a `.herdr-configs`
+   file) or links from older installs.
 2. Makes the layout `nested` from Herdr's `main` layout, if it does not exist.
 3. Points that layout at the mods here, in place of the Herdr mods they were cloned from.
-4. Checks each mod, then switches the window to `main` and back to `nested`, which loads the new files.
+4. Checks each mod and switches the window to `nested`.
 
 `layout.switch` (`cmd-shift-l` on macOS) switches layouts, so `main` is one key away.
 
-After you edit a mod here, run `install.sh` again. Herdr does not see edits
-made through a link, and it keeps a mod loaded from where the link pointed
-when it first loaded. A layout starts its mods fresh, so the script switches
-to `main` and back to `nested` to load the new files.
+After you edit a mod here, run `install.sh` again. Herdr reloads a mod, in
+every pane and panel that shows it, when a file in `~/.config/herdr-app/mods/`
+changes. It does not see changes made through a link, so the script copies.
+Edit the files here, not the copies.
 
 ## Sub-agent modes
 

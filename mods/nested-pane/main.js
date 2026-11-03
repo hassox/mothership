@@ -6,8 +6,8 @@
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { panes, terminals, spaces, props, run, theme, home } from "herdr";
-import { roles, subOf, leadChip, spaceOf } from "./subagents.js";
+import { panes, terminals, props, run, theme, home } from "herdr";
+import { roles, subOf, leadChip, nameOf, whereOf } from "./subagents.js";
 import { tagText } from "./org.js";
 
 function icon(p, size, color) {
@@ -42,6 +42,30 @@ export default class Pane extends View {
       .child(svg(`mods/nested-pane/${icon}.svg`).size(14));
   }
 
+  leader(t, pane, up) {
+    const tag = tagText(up);
+    const name = up.name || whereOf(up) || nameOf(up);
+    return h_flex()
+      .id(`pane-leader-${pane}`)
+      .flex_none()
+      .gap(5)
+      .px(5)
+      .h(20)
+      .items_center()
+      .rounded(5)
+      .font_medium()
+      .text_color(t.accent)
+      .cursor_pointer()
+      .hover((s) => s.bg(t.hover))
+      .tooltip(`Take me to your leader: ${[name, tag].filter(Boolean).join(" · ")}`)
+      .on_click((_e, cx) => {
+        cx.stop_propagation();
+        run("agent.focus", { terminal: up.address });
+      })
+      .child(svg("mods/nested-pane/alien.svg").size(13).flex_none().text_color(t.accent))
+      .child(subOf({ parent: up }));
+  }
+
   render(cx) {
     const t = theme();
     const p = this.me();
@@ -53,8 +77,6 @@ export default class Pane extends View {
     const all = terminals();
     const r = p.terminal ? roles(all)(p.terminal) : null;
     const tag = p.terminal ? tagText(all.find((k) => k.address === p.terminal) ?? {}) : null;
-    const spaceId = p.terminal ? spaceOf(all, p.terminal) : null;
-    const space = spaceId ? spaces().find((s) => s.id === spaceId) : null;
     return h_flex()
       .id(`pane-head-${pane}`)
       .size_full()
@@ -67,30 +89,10 @@ export default class Pane extends View {
       .text_size(12)
       .on_hover((hovered, cx) => { this.hovered = hovered; cx.notify(); })
       .on_click(() => run("pane.focus", { pane }))
-      .when(Boolean(r?.parent), (el) => el.child(div().flex_none().font_medium().text_color(t.accent).child(subOf(r))))
+      .when(Boolean(r?.parent), (el) => el.child(this.leader(t, pane, r.parent)))
       .when(Boolean(pic), (el) => el.child(pic))
       .child(div().flex_none().truncate().max_w(260).font_medium().text_color(t.foreground).child(name))
       .when(Boolean(tag), (el) => el.child(div().flex_none().truncate().max_w(180).text_color(t.dim).child(tag)))
-      .when(Boolean(space), (el) => el.child(h_flex()
-        .id(`pane-space-${pane}`)
-        .flex_none()
-        .gap(4)
-        .px(6)
-        .h(18)
-        .items_center()
-        .rounded(5)
-        .bg(t.raised)
-        .text_size(11)
-        .text_color(t.muted)
-        .cursor_pointer()
-        .hover((s) => s.bg(t.hover).text_color(t.foreground))
-        .tooltip(`Go to ${space.name}`)
-        .on_click((_e, cx) => {
-          cx.stop_propagation();
-          run("space.select", { id: space.id });
-        })
-        .child(svg("mods/workspace-chrome/layers.svg").size(11))
-        .child(div().max_w(160).truncate().child(space.name))))
       .child(div().flex_1().truncate().text_color(t.dim).child(folder(p.cwd)))
       .when(Boolean(r?.subs), (el) => el.child(leadChip(t, r)))
       .when(st === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))

@@ -96,14 +96,23 @@ describe("F5 display", () => {
     expect(texts(findId(tree, "tab-tb2")).some((s) => s.includes("·") || s.includes("untagged"))).toBe(false);
   });
 
-  test("the pane header shows the agent's space, and clicking it selects that space", () => {
+  test("a sub-agent's pane header takes you to its leader", () => {
     state.props = { pane: "p1" };
     const p = new Pane();
     p.init();
-    const chip = findId(p.render(cx()), "pane-space-p1");
-    expect(texts(chip)).toContain("prime");
-    click(chip);
-    expect(state.ran).toEqual([["space.select", { id: "s1" }]]);
+    const button = findId(p.render(cx()), "pane-leader-p1");
+    expect(texts(button)).toContain("Sub-agent of review");
+    expect(button._props.tooltip[0]).toBe("Take me to your leader: review · sub-lead · reviewer");
+    click(button);
+    expect(state.ran).toEqual([["agent.focus", { terminal: "t2" }]]);
+  });
+
+  test("a top-level agent's pane header has no leader button", () => {
+    state.panes = [...state.panes, { pane: "p3", tab: "tb1", terminal: "t1", title: "prime", program, status: "working", cwd: "/repo" }];
+    state.props = { pane: "p3" };
+    const p = new Pane();
+    p.init();
+    expect(findId(p.render(cx()), "pane-leader-p3")).toBe(null);
   });
 
   test("the pane header shows tag text only for a tagged terminal", () => {

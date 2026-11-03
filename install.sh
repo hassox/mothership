@@ -7,12 +7,15 @@ LAYOUT=nested
 
 for mod in "$REPO"/mods/*/; do
   target="$APP/mods/$(basename "$mod")"
-  if [ -e "$target" ] && [ ! -L "$target" ]; then
-    echo "skip $target: a folder that is not a link is there" >&2
+  if [ -e "$target" ] && [ ! -L "$target" ] && [ ! -e "$target/.herdr-configs" ]; then
+    echo "skip $target: a folder this script did not install is there" >&2
     continue
   fi
   cp "$REPO"/shared/*.js "$mod"
-  ln -sfn "${mod%/}" "$target"
+  [ ! -L "$target" ] || rm "$target"
+  mkdir -p "$target"
+  rsync -a --delete --exclude .herdr-configs --exclude '*.d.ts' --exclude jsconfig.json "$mod" "$target/"
+  touch "$target/.herdr-configs"
   herdr-app check "$target"
 done
 
@@ -46,5 +49,4 @@ layout.write_text(json.dumps(tree, indent=2) + "\n")
 print("layout", layout.name, "uses", ", ".join(f"{a} -> {b}" for a, b in swap.items()))
 PY
 
-herdr-app do layout.switch "{\"name\":\"main\"}" >/dev/null
 herdr-app do layout.switch "{\"name\":\"$LAYOUT\"}" >/dev/null
