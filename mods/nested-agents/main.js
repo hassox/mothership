@@ -2,9 +2,10 @@
 // A viewed done agent stays in Done until left.
 
 import { View, div, image, svg } from "gpui-kit";
-import { v_flex, h_flex } from "gpui-base";
+import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout, nextCommand, notify } from "herdr";
 import { MODES, modeOf, RANK, kidStatus, kidsByParent, subTree } from "./subagents.js";
+import { KEYS, SCOPES, orgTree, filterTree, facets, parseQuery, toggleTerm, tagText } from "./org.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -43,8 +44,11 @@ function title(tab, l) {
 const SORTS = [
   { id: "priority", label: "Priority", icon: "clock" },
   { id: "grouped", label: "Grouped by space", icon: "layers" },
+  { id: "org", label: "Org", icon: "git-branch" },
 ];
 const sortOf = () => SORTS.find((s) => s.id === shared("agents.sort")) ?? SORTS[0];
+const scopeOf = () => SCOPES.find((s) => s.id === shared("org.scope")) ?? SCOPES[0];
+const FACET = { role: "Role", profile: "Profile", harness: "Harness", machine: "Machine", status: "Status" };
 const SECTION = { 4: "Needs you", 3: "Done", 2: "Working", 1: "Idle" };
 const SECTION_STATUS = { 4: "blocked", 3: "done", 2: "working" };
 
@@ -64,7 +68,9 @@ function icon(p, size, color) {
 
 export default class Agents extends View {
   init(_props, cx) {
-    if (props()?.sortMenu) return;
+    if (props()?.sortMenu || props()?.filterMenu) return;
+    this.search = InputState.new({ placeholder: "Search, or role:  profile:", value: shared("org.filter") ?? "" });
+    this.search.on("change", () => setShared("org.filter", this.search.value()));
     this.folded = new Set();
     // Each agent's last state and when it changed (ms), kept across restarts.
     this.changed = JSON.parse(localStorage.getItem("changed") ?? "{}");
@@ -75,6 +81,8 @@ export default class Agents extends View {
     cx.spawn(async () => {
       for (;;) {
         const command = await nextCommand();
+        if (command === "org") { setShared("agents.sort", "org"); continue; }
+        if (command === "org-scope") { setShared("org.scope", scopeOf().id === "all" ? "leaders" : "all"); continue; }
         const next = command === "next" ? MODES[(MODES.indexOf(modeOf()) + 1) % MODES.length] : MODES.find((m) => m.id === command);
         if (!next) continue;
         setShared("nested.mode", next.id);
@@ -171,6 +179,147 @@ export default class Agents extends View {
     run("terminal.peek", { terminal: addr });
   }
 
+  filterMenu(t) {
+    const q = shared("org.filter") ?? "";
+    const on = parseQuery(q);
+    const f = facets(orgTree(terminals(), scopeOf().id));
+    const shown = KEYS.filter((key) => f[key].size);
+    return v_flex()
+      .id("filter-menu")
+      .size_full()
+      .p(5)
+      .bg(t.popover)
+      .text_size(12.8)
+      .overflow_y_scrollbar()
+      .when(!shown.length, (el) => el.child(div().p(8).text_color(t.dim).child("Nothing to filter yet.")))
+      .children(shown.flatMap((key) => [
+        div().px(8).pt(6).pb(4).text_size(11).text_color(t.dim).child(FACET[key]),
+        ...[...f[key]].map(([value, count]) => {
+          const ticked = on[key].includes(value.toLowerCase());
+          return h_flex()
+            .id(`filter-${key}-${value}`)
+            .h(28)
+            .px(8)
+            .gap(9)
+            .rounded(7)
+            .items_center()
+            .text_color(t.foreground)
+            .hover((el) => el.bg(t.hover))
+            .on_click(() => setShared("org.filter", toggleTerm(shared("org.filter") ?? "", key, value)))
+            .child(div().size(14).flex_none().rounded(4).border(1.5).border_color(ticked ? t.foreground : t.input).flex().items_center().justify_center()
+              .when(ticked, (el) => el.child(svg("mods/workspace-chrome/check.svg").size(11).text_color(t.foreground))))
+            .child(div().flex_1().min_w(0).truncate().child(value))
+            .child(div().flex_none().text_size(11).text_color(t.dim).child(String(count)));
+        }),
+      ]))
+      .when(Boolean(q.trim()), (el) => el.child(div().id("filter-clear").mt(4).px(8).h(28).flex().items_center().justify_end().rounded(7).text_size(12).text_color(t.muted)
+        .hover((el) => el.bg(t.hover).text_color(t.foreground)).on_click(() => setShared("org.filter", "")).child("Clear all")));
+  }
+
+  treeLines(t, lines) {
+    return lines.map((l) => div().self_start().mt(-4).w(9).h(17).mr(4).flex_none()
+      .when(Boolean(l), (el) => el.border_l(1.5).border_color(t.input))
+      .when(l === "└" || l === "├", (el) => el.border_b(1.5).rounded_bl(6)));
+  }
+
+  orgRows(t, roots, shown) {
+    const rows = [];
+    const walk = (nodes, lead) => nodes.forEach((n, i) => {
+      const last = i === nodes.length - 1;
+      rows.push(this.orgRow(t, n, lead ? [...lead, last ? "└" : "├"] : [], shown));
+      if (n.kids.length && !this.folded.has(`org:${n.address}`)) walk(n.kids, lead ? [...lead, last ? "" : "│"] : []);
+    });
+    walk(roots, null);
+    return rows;
+  }
+
+  orgRow(t, n, lines, shown) {
+    const k = n.t;
+    const pic = icon(k.program, 14, t.foreground);
+    const on = n.address === shown;
+    const open = !this.folded.has(`org:${n.address}`);
+    const tag = tagText(k);
+    const pane = panes().find((p) => p.terminal === n.address);
+    const top = n.kids.map((c) => kidStatus(c.t, this.listed)).reduce((m, s) => ((RANK[s] ?? 0) > (RANK[m] ?? 0) ? s : m), null);
+    return h_flex()
+      .id(`org-${n.address}`)
+      .px(8)
+      .h(26)
+      .flex_none()
+      .gap(0)
+      .rounded(8)
+      .items_center()
+      .text_size(12.5)
+      .cursor_pointer()
+      .when(on, (el) => el.bg(t.selected))
+      .hover((el) => el.bg(t.hover))
+      .on_click(() => (pane ? run("pane.focus", { pane: pane.pane }) : this.peek(n.address)))
+      .children(this.treeLines(t, lines))
+      .child(div().id(`org-fold-${n.address}`).w(15).h(18).mr(3).flex_none().flex().items_center().justify_center().rounded(4)
+        .when(n.kids.length > 0, (el) => el.text_color(t.dim).hover((el) => el.bg(t.hover).text_color(t.foreground))
+          .on_click((_e, cx) => {
+            cx.stop_propagation();
+            open ? this.folded.add(`org:${n.address}`) : this.folded.delete(`org:${n.address}`);
+            cx.notify();
+          })
+          .child(svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`).size(11))))
+      .when(Boolean(pic), (el) => el.child(div().mr(7).child(pic)))
+      .child(div().flex_1().min_w(0).truncate().text_color(n.match === false ? t.dim : on || n.kids.length ? t.foreground : t.muted).child(n.name))
+      .when(Boolean(tag), (el) => el.child(div().flex_none().max_w(130).ml(6).truncate().text_size(11).text_color(t.dim).child(tag)))
+      .when(n.kids.length > 0 && !open, (el) => el.child(div().flex_none().ml(6).text_size(11).text_color(t[top] ?? t.dim).child(String(n.kids.length))))
+      .child(div().ml(6).child(this.status(t, { status: kidStatus(k, this.listed) }, true)));
+  }
+
+  orgHeader(t) {
+    const scope = scopeOf().id;
+    const seg = (s) => div()
+      .id(`org-scope-${s.id}`)
+      .px(7)
+      .h(20)
+      .flex()
+      .items_center()
+      .rounded(5)
+      .text_size(11)
+      .when(s.id === scope, (el) => el.bg(t.selected).text_color(t.foreground))
+      .when(s.id !== scope, (el) => el.text_color(t.dim).hover((el) => el.text_color(t.foreground)))
+      .on_click(() => setShared("org.scope", s.id))
+      .child(s.label);
+    return h_flex().gap(6).items_center()
+      .child(h_flex().p(1).gap(1).rounded(6).border(1).border_color(t.border).children(SCOPES.map(seg)))
+      .child(div()
+        .id("org-filter")
+        .text_color(parseQuery(shared("org.filter") ?? "").words.length || KEYS.some((key) => parseQuery(shared("org.filter") ?? "")[key].length) ? t.accent : t.dim)
+        .hover((el) => el.text_color(t.foreground))
+        .tooltip("Filter")
+        .on_click(() => openOverlay({ mod: "nested-agents", kind: "popup", width: 240, height: 420, props: { filterMenu: true } }))
+        .child(svg("mods/nested-agents/filter.svg").size(14)));
+  }
+
+  orgSearch(t) {
+    const q = shared("org.filter") ?? "";
+    if (this.search.value() !== q) this.search.set_value(q);
+    return h_flex()
+      .id("org-search")
+      .mx(8)
+      .mb(6)
+      .h(28)
+      .px(8)
+      .gap(6)
+      .flex_none()
+      .items_center()
+      .rounded(7)
+      .border(1)
+      .border_color(t.border)
+      .bg(t.background)
+      .cursor_text()
+      .on_click(() => this.search.focus())
+      .child(svg("mods/workspace-chrome/search.svg").size(13).flex_none().text_color(t.dim))
+      .child(div().flex_1().min_w(0).child(Input.new(this.search).h_full().text_size(12).text_color(t.foreground)))
+      .when(Boolean(q), (el) => el.child(div().id("org-search-clear").text_color(t.dim).hover((el) => el.text_color(t.foreground))
+        .on_click((_e, cx) => { cx.stop_propagation(); setShared("org.filter", ""); })
+        .child(svg("mods/workspace-chrome/x.svg").size(12))));
+  }
+
   subRow(t, s, shown, compact) {
     const k = s.t;
     const st = kidStatus(k, this.listed);
@@ -211,6 +360,7 @@ export default class Agents extends View {
   render(cx) {
     const t = theme();
     if (props()?.sortMenu) return this.sortMenu(t);
+    if (props()?.filterMenu) return this.filterMenu(t);
     const collapsed = narrow();
     const sort = sortOf();
     let list = agents();
@@ -395,9 +545,16 @@ export default class Agents extends View {
           .when(!byPriority && top && top !== "idle", (el) => el.child(this.status(t, { status: top }, true)))
           .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
     };
-    const rows = collapsed
-      ? list.flatMap(withKids)
-      : groups.flatMap((g) => [header(g), ...(this.folded.has(g.id) ? [] : g.members.flatMap(withKids))]);
+    const isOrg = sort.id === "org" && !collapsed;
+    const org = isOrg ? filterTree(orgTree(all, scopeOf().id), shared("org.filter") ?? "") : [];
+    const rows = isOrg
+      ? this.orgRows(t, org, shown)
+      : collapsed
+        ? list.flatMap(withKids)
+        : groups.flatMap((g) => [header(g), ...(this.folded.has(g.id) ? [] : g.members.flatMap(withKids))]);
+    const count = (nodes) => nodes.reduce((n, x) => [n[0] + (x.kids.length ? 1 : 0), n[1] + 1].map((v, i) => v + count(x.kids)[i]), [0, 0]);
+    const [leads, members] = count(org);
+    const orgEmpty = (shared("org.filter") ?? "").trim() ? "Nothing matches." : scopeOf().id === "leaders" ? "No leaders. A leader is an agent that started another with hc run." : "No agents.";
 
     return v_flex()
       .size_full()
@@ -416,8 +573,8 @@ export default class Agents extends View {
             .flex_none()
             .items_center()
             .justify_between()
-            .child(div().min_w(0).truncate().text_size(11.5).font_medium().text_color(t.dim).child(here ? `Agents in ${here.name}` : "Agents"))
-            .child(
+            .child(div().min_w(0).truncate().text_size(11.5).font_medium().text_color(t.dim).child(here && !isOrg ? `Agents in ${here.name}` : "Agents"))
+            .child(h_flex().gap(8).items_center().when(isOrg, (el) => el.child(this.orgHeader(t))).child(
               div()
                 .id("ag-sort")
                 .text_size(11)
@@ -426,13 +583,16 @@ export default class Agents extends View {
                 .on_click(() => openOverlay({ mod: "nested-agents", kind: "popup", width: 224, height: 320, props: { sortMenu: true } }))
                 .tooltip(`Sort agents: ${sort.label}`)
                 .child(svg(`mods/workspace-chrome/${sort.icon}.svg`).size(14)),
-            ),
+            )),
         ),
       )
-      .when(list.length === 0 && !collapsed, (el) =>
+      .when(isOrg, (el) => el.child(this.orgSearch(t)))
+      .when(isOrg && org.length === 0, (el) => el.child(div().px(12).text_size(12).text_color(t.dim).child(orgEmpty)))
+      .when(!isOrg && list.length === 0 && !collapsed, (el) =>
         el.child(div().px(12).text_size(12).text_color(t.dim).child(here ? `No agents in ${here.name}.` : "No agent status yet. Agents show up here when they report their status. Older versions and agents inside tmux may not.")),
       )
       .child(v_flex().id("ag-list").flex_1().min_h(0).px(collapsed ? 0 : 8).overflow_y_scrollbar().mode("always").children(rows))
+      .when(isOrg && org.length > 0, (el) => el.child(div().px(16).h(26).flex_none().flex().items_center().text_size(11).text_color(t.dim).child(`${leads} leaders · ${members} agents`)))
       .when(collapsed, (el) =>
         el.child(
           h_flex()

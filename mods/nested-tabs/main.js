@@ -2,6 +2,7 @@ import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, panes, terminals, run, openOverlay, theme, window, shared, layout, settings } from "herdr";
 import { roles, leadChip } from "./subagents.js";
+import { tagText } from "./org.js";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -53,11 +54,13 @@ export default class Tabs extends View {
     const stop = (_e, cx) => cx.stop_propagation();
     const button = (id, label, action) => div().id(id).size(26).flex_none().flex().items_center().justify_center().rounded(6).text_color(t.dim).hover(s => s.bg(t.hover).text_color(t.foreground))
       .on_mouse_down("left", stop).on_click(action).child(label);
-    const role = roles(terminals());
+    const all = terminals();
+    const role = roles(all);
     const item = (c, i) => {
       const pane = panes().find(p => p.tab === c.id && p.program?.agent) ?? panes().find(p => p.tab === c.id);
       const program = pane?.program;
       const r = pane?.terminal ? role(pane.terminal) : null;
+      const tag = pane?.terminal ? tagText(all.find(k => k.address === pane.terminal) ?? {}) : null;
       const ink = r?.parent ? [t.muted, t.dim] : [t.foreground, t.muted];
       const name = /^tb\d+$/.test(c.name) ? program?.name ?? "Terminal" : c.name;
       return h_flex().id(`tab-${c.id}`).h(29).px(10).gap(7).rounded(7).items_center().flex_none().text_size(12.8)
@@ -73,6 +76,7 @@ export default class Tabs extends View {
         .when(Boolean(r?.parent), el => el.child(div().text_color(t.dim).child("↳")))
         .when(Boolean(program?.icon), el => el.child(program.tint ? svg(program.icon).size(14).text_color(t.muted) : image(program.icon).size(14)))
         .child(div().max_w(170).truncate().child(c.zoomed ? `${name} Z` : name))
+        .when(Boolean(tag), el => el.child(div().max_w(140).truncate().text_size(11.5).text_color(t.dim).child(tag)))
         .when(Boolean(r?.subs), el => el.child(leadChip(t, r)))
         .when(c.status === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
         .when(c.status === "blocked" || c.status === "done", el => el.child(div().size(6).rounded(3).bg(t[c.status])))

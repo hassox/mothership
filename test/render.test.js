@@ -1,0 +1,110 @@
+import { beforeEach, describe, expect, test } from "bun:test";
+import { state, cx, texts, findId, click } from "./preload.js";
+import { all, lone } from "./fixture.js";
+import Agents from "../mods/nested-agents/main.js";
+import Tabs from "../mods/nested-tabs/main.js";
+import Pane from "../mods/nested-pane/main.js";
+
+const program = { key: "pi", name: "pi", agent: true };
+const space = { id: "s1", name: "prime", active: true, tabs: [{ id: "tb1", name: "r-ui", named: true, active: true, status: null }, { id: "tb2", name: "notes", named: true, active: false, status: null }] };
+
+beforeEach(() => {
+  Object.assign(state, {
+    terminals: all, agents: [], spaces: [space], focused: null, props: {}, ran: [], overlays: [],
+    shared: { "agents.sort": "org" },
+    panes: [
+      { pane: "p1", tab: "tb1", terminal: "t3", title: "r-ui", program, status: "blocked", cwd: "/repo/ui" },
+      { pane: "p2", tab: "tb2", terminal: "t5", title: "notes", program, status: "idle", cwd: "/repo/notes" },
+    ],
+  });
+});
+
+function sidebar() {
+  const view = new Agents();
+  view.init({}, cx());
+  return { view, tree: () => view.render(cx()) };
+}
+
+const rowIds = (tree) => {
+  const ids = [];
+  const walk = (n) => {
+    if (!n?._kids) return;
+    const id = n._props.id?.[0];
+    if (typeof id === "string" && /^org-(?!fold|scope|filter|search)/.test(id)) ids.push(id.slice(4));
+    n._kids.forEach(walk);
+  };
+  walk(tree);
+  return ids;
+};
+
+describe("F5 display", () => {
+  test("the Org view lists the leaders tree depth first, with tag text on each row", () => {
+    const { tree } = sidebar();
+    const t = tree();
+    expect(rowIds(t)).toEqual(["t1", "t2", "t3", "t4", "t5", "vps/t2", "vps/t3"]);
+    expect(texts(findId(t, "org-t3"))).toContain("worker · poteto");
+    expect(texts(findId(t, "org-t4"))).toContain("worker");
+    expect(texts(findId(t, "org-t1"))).toContain("lead · poteto");
+    expect(texts(findId(t, "org-t5")).some((s) => s.includes("·") || s.includes("untagged"))).toBe(false);
+  });
+
+  test("folding a nested leader hides its children", () => {
+    const { tree } = sidebar();
+    click(findId(tree(), "org-fold-t2"));
+    expect(rowIds(tree())).toEqual(["t1", "t2", "t5", "vps/t2", "vps/t3"]);
+  });
+
+  test("the scope toggle switches to All, which adds lone agents", () => {
+    const { tree } = sidebar();
+    click(findId(tree(), "org-scope-all"));
+    expect(state.shared["org.scope"]).toBe("all");
+    expect(rowIds(tree())).toContain(lone.address);
+    click(findId(tree(), "org-scope-leaders"));
+    expect(rowIds(tree())).not.toContain(lone.address);
+  });
+
+  test("typing in the search box filters the tree", () => {
+    const { view, tree } = sidebar();
+    tree();
+    view.search.type("role:worker profile:poteto");
+    expect(state.shared["org.filter"]).toBe("role:worker profile:poteto");
+    expect(rowIds(tree())).toEqual(["t1", "t2", "t3"]);
+  });
+
+  test("ticking a value in the filter popup adds its term, and ticking again removes it", () => {
+    state.props = { filterMenu: true };
+    const popup = new Agents();
+    popup.init(state.props, cx());
+    click(findId(popup.render(cx()), "filter-role-worker"));
+    expect(state.shared["org.filter"]).toBe("role:worker");
+    click(findId(popup.render(cx()), "filter-role-worker"));
+    expect(state.shared["org.filter"]).toBe("");
+  });
+
+  test("clicking a row with a pane focuses it, and one without a pane peeks it", () => {
+    const { tree } = sidebar();
+    click(findId(tree(), "org-t3"));
+    click(findId(tree(), "org-t4"));
+    expect(state.ran).toEqual([["pane.focus", { pane: "p1" }], ["terminal.peek", { terminal: "t4" }]]);
+  });
+
+  test("the tab bar shows tag text only for a tagged terminal", () => {
+    const t = new Tabs();
+    t.init();
+    const tree = t.render();
+    expect(texts(findId(tree, "tab-tb1"))).toContain(`worker · poteto`);
+    expect(texts(findId(tree, "tab-tb2")).some((s) => s.includes("·") || s.includes("untagged"))).toBe(false);
+  });
+
+  test("the pane header shows tag text only for a tagged terminal", () => {
+    for (const [pane, want] of [["p1", true], ["p2", false]]) {
+      state.props = { pane };
+      const p = new Pane();
+      p.init();
+      const shown = texts(p.render(cx()));
+      expect(shown.includes(`worker · poteto`)).toBe(want);
+      expect(shown.some((s) => s.includes("untagged"))).toBe(false);
+    }
+  });
+});
+

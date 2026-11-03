@@ -23,13 +23,13 @@ export const nameOf = (k) => k.name || k.template || k.program?.name || k.addres
 export const sayOf = (k) => (typeof k.report === "string" ? k.report : k.report?.msg) ?? "";
 
 const prefix = (addr) => (addr.includes("/") ? `${addr.split("/")[0]}/` : "");
+export const parentOf = (k) => (k.parent ? (k.parent.includes("/") ? k.parent : prefix(k.address) + k.parent) : null);
 
 export function kidsByParent(all, hidePlaced) {
   const by = new Map();
   for (const k of all) {
     if (k.state !== "live" || !k.parent || (hidePlaced && k.labels?.["herdr.space"])) continue;
-    const parent = k.parent.includes("/") ? k.parent : prefix(k.address) + k.parent;
-    by.set(parent, [...(by.get(parent) ?? []), k]);
+    by.set(parentOf(k), [...(by.get(parentOf(k)) ?? []), k]);
   }
   return by;
 }
@@ -48,7 +48,7 @@ export function roles(all) {
   return (addr) => {
     const k = byAddress.get(addr);
     if (!k) return null;
-    const up = k.parent && (k.parent.includes("/") ? k.parent : prefix(k.address) + k.parent);
+    const up = parentOf(k);
     const subs = subTree(by, addr);
     if (!up && !subs.length) return null;
     return { parent: up ? byAddress.get(up) ?? { address: up } : null, subs: subs.length, status: topStatus(subs) };

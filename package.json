@@ -1,0 +1,8 @@
+{
+  "name": "herdr-configs",
+  "private": true,
+  "scripts": {
+    "test": "bun test",
+    "check": "sh scripts/check.sh"
+  }
+}

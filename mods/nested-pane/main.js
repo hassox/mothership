@@ -8,6 +8,7 @@ import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { panes, terminals, props, run, theme, home } from "herdr";
 import { roles, subOf, leadChip } from "./subagents.js";
+import { tagText } from "./org.js";
 
 function icon(p, size, color) {
   if (!p?.icon) return null;
@@ -49,7 +50,9 @@ export default class Pane extends View {
     const pic = icon(p.program, 14, t.dim);
     const st = p.status;
     const pane = p.pane;
-    const r = p.terminal ? roles(terminals())(p.terminal) : null;
+    const all = terminals();
+    const r = p.terminal ? roles(all)(p.terminal) : null;
+    const tag = p.terminal ? tagText(all.find((k) => k.address === p.terminal) ?? {}) : null;
     return h_flex()
       .id(`pane-head-${pane}`)
       .size_full()
@@ -65,6 +68,7 @@ export default class Pane extends View {
       .when(Boolean(r?.parent), (el) => el.child(div().flex_none().font_medium().text_color(t.accent).child(subOf(r))))
       .when(Boolean(pic), (el) => el.child(pic))
       .child(div().flex_none().truncate().max_w(260).font_medium().text_color(t.foreground).child(name))
+      .when(Boolean(tag), (el) => el.child(div().flex_none().truncate().max_w(180).text_color(t.dim).child(tag)))
       .child(div().flex_1().truncate().text_color(t.dim).child(folder(p.cwd)))
       .when(Boolean(r?.subs), (el) => el.child(leadChip(t, r)))
       .when(st === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
