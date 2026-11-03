@@ -35,7 +35,7 @@ make mothership-agents mothership-pane
 | `mothership-spaces` | The Spaces list: the Tree, Dots and Agents tab modes. | `mothership-agents` (it has the mode menu), `mothership-crew` |
 | `mothership-crew` | The Agents tab that the Agents tab mode opens. | |
 | `launcher` | `herdr-org-launch` in `~/.local/bin`. | |
-| `plugin` | The `hc-context` plugin in each harness on `PATH`: Claude Code, Codex, Grok Build, `agy` and pi. | |
+| `plugin` | The `hc-context` plugin, in the harnesses you choose (below). | |
 
 The Makefile's prerequisite lines are the dependency list; `make -n <name>`
 shows what a name would install without doing it.
@@ -52,9 +52,17 @@ Each mod:
 3. Switches the window to `mothership`.
 
 `layout.switch` (`cmd-shift-l` on macOS) switches layouts, so `main` is
-one key away. Installing fewer mods later does not swap the others back;
-delete `~/.config/herdr-app/layouts/mothership.json` and run `make` with the
-names you want.
+one key away. To drop a mod later, see [Uninstall](#uninstall).
+
+`make plugin` looks for Claude Code, Codex, Grok Build, `agy` and pi on
+`PATH`, and skips any that already have `hc-context`. In a terminal it asks
+for each one; Enter means yes. Without a terminal, as when an agent runs
+`make`, it installs into all of them. `HARNESSES` names the ones you want
+and skips the questions:
+
+```sh
+make plugin HARNESSES="claude pi"
+```
 
 After you edit a mod here, run `make` again. Herdr reloads a mod, in every
 pane and panel that shows it, when a file in `~/.config/herdr-app/mods/`
@@ -79,6 +87,29 @@ pi remove "$(pi list | sed -n 's#^ *\(/.*/agent-files/plugins/hc-context\)$#\1#p
 ```
 
 Then run `make`.
+
+## Uninstall
+
+```sh
+make uninstall
+```
+
+removes everything `make` installs. To remove one piece, put `uninstall-` in
+front of its name:
+
+```sh
+make uninstall-mothership-pane uninstall-plugin
+```
+
+| Name | What it removes |
+|---|---|
+| `uninstall-layout` | Switches the window to `main`, then deletes the `mothership` layout and its picture. |
+| `uninstall-<mod>` | The mod's folder, if it holds a `.mothership` file, and puts Herdr's own mod back in its block of the `mothership` layout. Removing `mothership-agents` or `mothership-crew` also removes `mothership-spaces`, which needs them. |
+| `uninstall-launcher` | `~/.local/bin/herdr-org-launch`, if it points into this clone. |
+| `uninstall-plugin` | `hc-context` and this repo's marketplace from each harness that has it. `HARNESSES` limits it to the ones you name. |
+
+`make uninstall` removes the layout first, so the window is on `main` before
+the mods go. Like `make`, it needs Herdr open.
 
 ## The Org view
 
@@ -195,8 +226,10 @@ These show in every mode, Off included.
 
 ## What is in this repo
 
-- `Makefile` and `scripts/`: the install. `scripts/swap-layout.py` puts a
-  mod in the place of the Herdr mod it was cloned from.
+- `Makefile` and `scripts/`: install and uninstall. `scripts/swap-layout.py`
+  puts a mod in the place of the Herdr mod it was cloned from, and back.
+  `scripts/plugin.sh` holds each harness's install, uninstall and
+  "already installed?" commands.
 - `layouts/mothership.json`: the full layout, a clone of Herdr's `main` 0.1.12
   with every mod swapped in, for herdr.dev. `make` builds yours from `main`
   instead, so it holds only the mods you install.

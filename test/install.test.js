@@ -6,7 +6,7 @@ import { ROOT } from "./core.js";
 const plan = (...goals) => {
   const r = Bun.spawnSync(["make", "-n", "-s", "APP=/nowhere", ...goals], { cwd: ROOT, stdout: "pipe", stderr: "pipe" });
   if (r.exitCode !== 0) throw new Error(r.stderr.toString());
-  return r.stdout.toString().split("\n").map((l) => l.match(/install-mod\.sh \S+ \S+ (\S+)/)?.[1] ?? l.match(/^(?:sh scripts\/)?(install-layout|install-plugin)/)?.[1] ?? (l.includes("herdr-org-launch") ? "launcher" : null)).filter(Boolean);
+  return r.stdout.toString().split("\n").map((l) => l.match(/install-mod\.sh \S+ \S+ (\S+)/)?.[1] ?? l.match(/(install-layout|plugin\.sh install)/)?.[1] ?? (l.includes("herdr-org-launch") ? "launcher" : null)).filter(Boolean);
 };
 
 test("a mod brings the mods it needs, and nothing else", () => {
@@ -19,7 +19,7 @@ test("make with no names installs every mod, the launcher and the plugin", () =>
   const all = plan();
   expect(all.filter((s) => s.startsWith("mothership-")).sort()).toEqual(["mothership-agents", "mothership-crew", "mothership-pane", "mothership-spaces", "mothership-status", "mothership-tabs"]);
   expect(all).toContain("launcher");
-  expect(all).toContain("install-plugin");
+  expect(all).toContain("plugin.sh install");
 });
 
 test("installing a mod swaps only the block of the Herdr mod it was cloned from", () => {
