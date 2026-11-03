@@ -1,6 +1,6 @@
 APP ?= $(HOME)/.config/herdr-app
 LAYOUT := mothership
-MODS := $(notdir $(wildcard mods/*))
+MODS := $(patsubst mods/%/mod.json,%,$(wildcard mods/*/mod.json))
 
 .NOTPARALLEL:
 .PHONY: all layout launcher plugin $(MODS)
