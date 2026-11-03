@@ -242,8 +242,9 @@ These show in every mode, Off included.
   and branch every 5 seconds, only while the tab is in front.
 - `shared/`: `subagents.js` (parents, sub-agent trees, marks) and `org.js`
   (the org tree, search, filter values, tag text). Herdr loads only files
-  inside a mod's own folder, so `make` copies them into each mod.
-  Edit them in `shared/`.
+  inside a mod's own folder, so each mod folder holds a copy of the ones it
+  imports. Edit them in `shared/`, then run `make sync` to update the
+  copies. `bun run check` fails if a copy differs from `shared/`.
 - `plugins/hc-context/`: the plugin, with a manifest and hook for each
   harness. Moved from hassox/agent-files at commit `45c89c3`.
 - `bin/herdr-org-launch`: the launcher.
@@ -259,7 +260,7 @@ of them, clone it again and move these changes onto the new copy.
 bun run check
 ```
 
-It copies `shared/` into each mod, runs `herdr-app check` on every mod,
+It runs `herdr-app check` on every mod,
 then `bun test`. The tests need `hc`, `herdr-app` and `bun`, and no model
 keys:
 

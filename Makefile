@@ -4,7 +4,7 @@ MODS := $(patsubst mods/%/mod.json,%,$(wildcard mods/*/mod.json))
 UNMODS := $(addprefix uninstall-,$(MODS))
 
 .NOTPARALLEL:
-.PHONY: install layout launcher plugin $(MODS) uninstall uninstall-layout uninstall-launcher uninstall-plugin $(UNMODS)
+.PHONY: install sync layout launcher plugin $(MODS) uninstall uninstall-layout uninstall-launcher uninstall-plugin $(UNMODS)
 
 install: $(MODS) launcher plugin
 
@@ -22,6 +22,9 @@ launcher:
 
 plugin:
 	sh scripts/plugin.sh install
+
+sync:
+	python3 scripts/sync-shared.py
 
 uninstall: uninstall-layout $(UNMODS) uninstall-launcher uninstall-plugin
 

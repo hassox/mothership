@@ -9,7 +9,6 @@ if [ -e "$target" ] && [ ! -L "$target" ] && [ ! -e "$target/.mothership" ]; the
   echo "$target is a folder this repo did not install; move it away first" >&2
   exit 1
 fi
-cp shared/*.js "mods/$mod/"
 [ ! -L "$target" ] || rm "$target"
 mkdir -p "$target"
 rsync -a --delete --exclude .mothership --exclude '*.d.ts' --exclude jsconfig.json "mods/$mod/" "$target/"

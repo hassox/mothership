@@ -18,10 +18,11 @@ cd mothership
 make install
 ```
 
-Do not copy the mod folders by hand. The mods share `shared/subagents.js`
-and `shared/org.js`, which `make` copies into each mod, and `make` also
-installs the `hc-context` plugin that tags agents, and the
-`herdr-org-launch` launcher. Ask the person before the plugin step: in a
+Use `make install` rather than copying folders. Each mod folder is complete,
+but `make` also swaps each mod into a `mothership` layout made from the
+person's `main`, so panels they skip stay Herdr's, and it installs the
+`hc-context` plugin that tags agents and the `herdr-org-launch` launcher.
+Ask the person before the plugin step: in a
 terminal `make` asks per harness; from an agent, run
 `make install HARNESSES="<the harnesses they chose>"` (any of `claude`,
 `codex`, `grok`, `agy`, `pi`). `make uninstall` removes it all.

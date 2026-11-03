@@ -1,4 +1,2 @@
 *.d.ts
 jsconfig.json
-mods/*/subagents.js
-mods/*/org.js

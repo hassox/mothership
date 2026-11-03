@@ -1,11 +1,4 @@
 import { mock } from "bun:test";
-import { copyFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-
-const root = join(import.meta.dir, "..");
-for (const mod of readdirSync(join(root, "mods"))) {
-  for (const file of readdirSync(join(root, "shared"))) copyFileSync(join(root, "shared", file), join(root, "mods", mod, file));
-}
 
 export function el(kind, arg) {
   const node = { _kind: kind, _arg: arg, _kids: [], _props: {} };
