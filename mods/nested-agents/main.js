@@ -48,6 +48,7 @@ const SORTS = [
 ];
 const sortOf = () => SORTS.find((s) => s.id === shared("agents.sort")) ?? SORTS[0];
 const scopeOf = () => SCOPES.find((s) => s.id === shared("org.scope")) ?? SCOPES[0];
+const TEAM = [["blocked", "needs you"], ["done", "done"], ["working", "working"], ["idle", "idle"]];
 const FACET = { role: "Role", profile: "Profile", harness: "Harness", machine: "Machine", status: "Status" };
 const SECTION = { 4: "Needs you", 3: "Done", 2: "Working", 1: "Idle" };
 const SECTION_STATUS = { 4: "blocked", 3: "done", 2: "working" };
@@ -182,7 +183,7 @@ export default class Agents extends View {
   filterMenu(t) {
     const q = shared("org.filter") ?? "";
     const on = parseQuery(q);
-    const f = facets(orgTree(terminals(), scopeOf().id));
+    const f = facets(orgTree(terminals(), scopeOf().id, new Map(agents().map((a) => [a.address, a.status]))));
     const shown = KEYS.filter((key) => f[key].size);
     return v_flex()
       .id("filter-menu")
@@ -265,8 +266,16 @@ export default class Agents extends View {
       .when(Boolean(pic), (el) => el.child(div().mr(7).child(pic)))
       .child(div().flex_1().min_w(0).truncate().text_color(n.match === false ? t.dim : on || n.kids.length ? t.foreground : t.muted).child(n.name))
       .when(Boolean(tag), (el) => el.child(div().flex_none().max_w(130).ml(6).truncate().text_size(11).text_color(t.dim).child(tag)))
-      .when((n.kids.length > 0 && !open) || n.reports > n.kids.length, (el) => el.child(div().flex_none().ml(6).text_size(11).text_color(t[n.urgent] ?? t.dim).tooltip(`${n.reports} reporting`).child(String(n.reports))))
-      .child(div().ml(6).child(this.status(t, { status: kidStatus(k, this.listed) }, true)));
+      .when((n.kids.length > 0 && !open) || n.reports > n.kids.length, (el) => el.child(div()
+        .id(`org-team-${n.address}`)
+        .flex_none()
+        .ml(6)
+        .text_size(11)
+        .font_medium()
+        .text_color(t[n.urgent] ?? t.dim)
+        .tooltip(`${n.reports} reports · team: ${TEAM.filter(([s]) => n.tally[s]).map(([s, word]) => `${n.tally[s]} ${word}`).join(", ")}`)
+        .child(String(n.reports))))
+      .child(div().ml(6).child(this.status(t, { status: n.status }, true)));
   }
 
   orgHeader(t) {
@@ -545,7 +554,7 @@ export default class Agents extends View {
           .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
     };
     const isOrg = sort.id === "org" && !collapsed;
-    const org = isOrg ? filterTree(orgTree(all, scopeOf().id), shared("org.filter") ?? "") : [];
+    const org = isOrg ? filterTree(orgTree(all, scopeOf().id, this.listed), shared("org.filter") ?? "") : [];
     const rows = isOrg
       ? this.orgRows(t, org, shown)
       : collapsed

@@ -30,7 +30,7 @@ const rowIds = (tree) => {
   const walk = (n) => {
     if (!n?._kids) return;
     const id = n._props.id?.[0];
-    if (typeof id === "string" && /^org-(?!fold|scope|filter|search)/.test(id)) ids.push(id.slice(4));
+    if (typeof id === "string" && /^org-(?!fold|scope|filter|search|team)/.test(id)) ids.push(id.slice(4));
     n._kids.forEach(walk);
   };
   walk(tree);
@@ -52,6 +52,19 @@ describe("F5 display", () => {
     const { tree } = sidebar();
     click(findId(tree(), "org-fold-t2"));
     expect(rowIds(tree())).toEqual(["t1", "t2", "t5", "t6", "vps/t2", "vps/t3"]);
+  });
+
+  test("a leader row shows its own status and its team's most urgent status", () => {
+    state.agents = [{ address: "t1", status: "done" }];
+    state.shared["org.scope"] = "leaders";
+    const t = sidebar().tree();
+    const row = findId(t, "org-t1");
+    const all = (n) => (n?._kids ? [n, ...n._kids.flatMap(all)] : []);
+    expect(all(row).some((n) => n._props.bg?.[0] === "#done")).toBe(true);
+    const count = findId(t, "org-team-t1");
+    expect(texts(count)).toEqual(["2"]);
+    expect(count._props.text_color[0]).toBe("#blocked");
+    expect(count._props.tooltip[0]).toBe("2 reports · team: 1 needs you, 1 working, 2 idle");
   });
 
   test("the Leaders scope shows only leaders, with a count of each leader's reports", () => {

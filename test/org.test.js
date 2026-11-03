@@ -49,6 +49,21 @@ describe("F3 nested leaders", () => {
   });
 });
 
+describe("status", () => {
+  test("a row's status is the agent's own, with the app's done kept", () => {
+    const [prime] = orgTree(all, "all", new Map([["t1", "done"]]));
+    expect([prime.status, prime.kids[0].status, prime.kids[0].kids[0].status]).toEqual(["done", "idle", "blocked"]);
+  });
+
+  test("a leader's team status is the most urgent anywhere below it, with a tally", () => {
+    const [prime] = orgTree(all, "leaders");
+    expect([prime.urgent, prime.tally]).toEqual(["blocked", { idle: 2, blocked: 1, working: 1 }]);
+    expect([prime.kids[0].urgent, prime.kids[0].tally]).toEqual(["blocked", { blocked: 1, working: 1 }]);
+    const [, lone] = orgTree(all, "all");
+    expect([lone.urgent, lone.tally]).toEqual([null, {}]);
+  });
+});
+
 describe("names", () => {
   test("a row is named by its terminal name, then where a top-level one is shown, then its program", () => {
     const where = { address: "t20", state: "live", status: "idle", report: {}, labels: { where: "prime / 1" }, program: { name: "Claude Code" } };
@@ -81,6 +96,6 @@ describe("F4 untagged", () => {
     expect(Object.fromEntries(f.profile)).toEqual({ poteto: 3, reviewer: 1 });
     expect(Object.fromEntries(f.harness)).toEqual({ "claude-code": 4, codex: 1, pi: 2 });
     expect(Object.fromEntries(f.machine)).toEqual({ local: 6, vps: 2 });
-    expect(Object.fromEntries(f.status)).toEqual({ working: 2, idle: 4, blocked: 1, done: 1 });
+    expect(Object.fromEntries(f.status)).toEqual({ working: 2, idle: 5, blocked: 1 });
   });
 });

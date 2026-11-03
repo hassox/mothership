@@ -64,8 +64,12 @@ Choose **Org** in the sort menu at the right of the Agents header, or run
 
 - **Leaders | All.** A leader is an agent with no parent, or any terminal
   whose agents it started are still running. Leaders shows only leaders,
-  nested at any depth, each with its count of direct reports in the color
-  of the most urgent one. All shows every agent under its leader.
+  nested at any depth. All shows every agent under its leader.
+- **Status.** Each row's badge is that agent's own status, as in Priority:
+  `!` needs you, a blue dot for done, a spinner for working, a ring for
+  idle. A leader whose reports are hidden or folded shows their count in
+  the color of the most urgent status anywhere in its team; hover it for
+  the breakdown, such as "3 reports · team: 1 needs you, 2 working".
   `nested-agents.org-scope` flips the two, so you can bind it to a key.
 - **Rows.** Each row shows the agent's role and profile, `worker · poteto`.
   Only the labels that are set show; an untagged agent shows none. A

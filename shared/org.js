@@ -1,4 +1,4 @@
-import { kidsByParent, parentOf, nameOf, whereOf, topStatus } from "./subagents.js";
+import { kidsByParent, parentOf, nameOf, whereOf, kidStatus, RANK } from "./subagents.js";
 
 export const KEYS = ["role", "profile", "harness", "machine", "status"];
 export const SCOPES = [
@@ -13,11 +13,17 @@ export function tagText(k) {
   return [label(k, "org.role"), label(k, "org.profile")].filter(Boolean).join(" · ") || null;
 }
 
-export function orgTree(all, scope) {
+export function orgTree(all, scope, listed = new Map()) {
   const live = new Set(all.filter((k) => k.state === "live").map((k) => k.address));
   const by = kidsByParent(all, false);
   const node = (k, top) => {
     const kids = (by.get(k.address) ?? []).map((c) => node(c, false));
+    const tally = {};
+    const add = (s, n = 1) => s && (tally[s] = (tally[s] ?? 0) + n);
+    for (const c of kids) {
+      add(c.status);
+      for (const [s, n] of Object.entries(c.tally)) add(s, n);
+    }
     return {
       t: k,
       address: k.address,
@@ -26,10 +32,11 @@ export function orgTree(all, scope) {
       profile: label(k, "org.profile"),
       harness: k.report?.app ?? null,
       machine: k.address.includes("/") ? k.address.split("/")[0] : "local",
-      status: k.status ?? null,
+      status: kidStatus(k, listed),
       kids,
       reports: kids.length,
-      urgent: topStatus(kids),
+      tally,
+      urgent: Object.keys(tally).reduce((m, s) => ((RANK[s] ?? 0) > (RANK[m] ?? 0) ? s : m), null),
       leader: kids.length > 0 || (top && isAgent(k)),
     };
   };

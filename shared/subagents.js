@@ -14,8 +14,9 @@ export const modeOf = () => MODES.find((m) => m.id === shared("nested.mode")) ??
 export const RANK = { blocked: 4, done: 3, working: 2, idle: 1 };
 
 export const kidStatus = (k, listed = new Map()) => {
-  const s = listed.get(k.address) ?? k.status;
-  return s === "error" ? "blocked" : s === "done" ? "idle" : s ?? null;
+  const shown = listed.get(k.address);
+  if (shown) return shown === "error" ? "blocked" : shown;
+  return k.status === "error" ? "blocked" : k.status === "done" ? "idle" : k.status ?? null;
 };
 
 export const topStatus = (subs) => subs.map((s) => kidStatus(s.t)).reduce((m, s) => ((RANK[s] ?? 0) > (RANK[m] ?? 0) ? s : m), null);

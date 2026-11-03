@@ -25,8 +25,9 @@ Left to right: a 268 px sidebar, then the work area.
   "Search, or role:  profile:", and an × that clears it. Under it, 26 px
   rows: tree lines in `input`, a fold chevron on a row with children, the
   program icon, the name, then `role · profile` in 11 px `dim` text, then
-  a count of direct reports in the color of the most urgent one, then the
-  status badge. A footer reads "N leaders" (Leaders) or
+  a count of direct reports in the color of the most urgent status anywhere
+  in the team below it (shown when those reports are hidden or folded),
+  then the agent's own status badge. A footer reads "N leaders" (Leaders) or
   "N leaders · M agents" (All).
 - **Names.** A top-level agent is named by where it shows ("acme-api / 1");
   a sub-agent by its own name.
@@ -49,8 +50,11 @@ no tag text at all.
   nested at any depth, each with its count of direct reports. All shows
   every agent under its leader.
 - **Status.** Working: a spinning ring in `working`. Needs you (blocked): a
-  `!` in `blocked`. Done: a filled dot. Idle: an open ring. A folded row's
-  count takes the most urgent report's color.
+  `!` in `blocked`. Done (finished while you were not looking): a filled
+  dot in `done`. Idle: an open ring. A leader's count takes the color of
+  the most urgent status anywhere in its team, and its tooltip gives the
+  breakdown ("3 reports · team: 1 needs you, 2 working"). A sub-agent
+  without a pane is not tracked as seen, so its `done` counts as idle.
 - **Search.** A bare word matches name, address, role, profile or folder.
   `role:`, `profile:`, `harness:`, `machine:` and `status:` match one field.
   The same key twice is OR; different keys and words are AND. Quotes keep
