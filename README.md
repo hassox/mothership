@@ -1,27 +1,167 @@
 # Mothership
 
-A Herdr layout for agents that start other agents. The Agents
-list shows your agents as an org: each leader with the agents it started,
-with each agent's role and profile, and a search across them. A plugin
-makes agents tag themselves.
+**Your agents start agents. Those start more. Soon the Agents list is
+thirty terminals and you can't tell who's in charge.**
 
-![The Org view](preview.png)
+Mothership shows you the leads. Choose **Org**, then **Leaders**, and
+every crew folds away: all you see are the agents in charge, each with the
+size of its crew. Talk to a lead. Open its crew only when you want to see
+who's doing the work.
 
-[A 12-second video](docs/herdr-org/media/org-view.mp4) shows the Leaders
-and All scopes, a search, and a sub-agent's leader button.
+![The leads, each with the size of its crew](preview.png)
+
+[A 15-second video](docs/herdr-org/media/org-view.mp4) shows the leads,
+one lead's crew, the whole org, a search, and a worker's button back to
+its lead.
+
+Mothership is a layout for [Herdr](https://herdr.dev), the desktop app for
+agents and terminals.
 
 ## Install
 
-Herdr must be open.
+Keep Herdr 0.1.12 open. You need `hc`, `herdr-app`, `git`, `make`,
+`python3` and `rsync`.
 
 ```sh
-git clone git@github.com:hassox/mothership.git
+git clone https://github.com/hassox/mothership.git
 cd mothership
 make install
 ```
 
-`make install` (or plain `make`) installs everything. To install only some
-pieces, name them:
+In a terminal, `make install` asks, for each agent app it finds (Claude
+Code, Codex, Grok Build, `agy`, pi), whether to add the `hc-context`
+plugin. The plugin lets agents label themselves and the agents they start.
+
+Then, in the Agents list, open the sort menu at the right of the header,
+choose **Org**, then **Leaders**.
+
+If you use Codex, open `codex` once and trust the `hc-context` hook. Codex
+runs a new or changed hook only after you trust it.
+
+Keep the cloned folder: the launcher, `~/.local/bin/herdr-org-launch`,
+links into it. Put `~/.local/bin` on your `PATH` to use it. To remove Mothership, see [Uninstall](#uninstall).
+
+## Working with your leads
+
+Choose **Org** in the sort menu. The list has two views:
+
+- **Leaders** starts with every crew folded, so you see only the agents in
+  charge. A lead's number is how many agents are in its crew right now,
+  colored by the most urgent agent anywhere beneath it; hover it for the
+  breakdown. Click a lead's arrow to see its crew, every agent it started.
+  A crew member with a crew of its own has its own number and arrow.
+- **All** shows every agent, crews open. You can fold any of them.
+
+![A lead opened to show its crew](docs/herdr-org/media/leaders-open.png)
+
+Click an agent's name to go to it.
+
+**Order.** Whatever needs you comes first, then done, then working, then
+idle. A lead ranks by its own status or its crew's, whichever is more
+urgent, so the lead whose crew needs you is at the top.
+
+**Labels.** Each row shows the agent's role and profile, such as
+`worker · poteto`, when they are set.
+
+**Every space.** The Org list shows agents from every space.
+
+**Search.** To find a particular agent, choose **All** and type in the
+search box: `review` keeps agents whose name, role, profile or folder
+contains it, and `role:worker` keeps the workers. The filter button offers
+values you can add to the search. More in [Search](#search).
+
+![A search](docs/herdr-org/media/search.png)
+
+## Roles and profiles
+
+Both are labels on the agent's terminal. **Role** is the agent's job in
+the crew, such as `worker` or `reviewer`. **Profile** is a name for how
+the agent is set up, such as `poteto`. Neither changes what the agent
+does; they show who's who.
+
+- **Role.** The agent that starts a crew member gives it a role:
+
+  ```sh
+  hc run --bg --name fix --label org.role=worker -- herdr-org-launch poteto claude "Fix x.rs"
+  ```
+
+  Change it later with `hc label fix org.role=reviewer`. The `hc-context`
+  plugin asks agents to label the crew they start.
+- **Profile.** Set `HC_PROFILE` and the plugin labels the agent when it
+  starts, for example with `alias poteto='HC_PROFILE=poteto claude'`.
+  For an agent you start with `hc run`, use the launcher above:
+  `herdr-org-launch <profile> <command>`. `hc run` does not pass your
+  environment on, so `HC_PROFILE` alone would be lost.
+
+## Back to the lead
+
+A crew member's pane header starts with an alien and *Sub-agent of
+`<lead>`*. Click it to go to the lead; click again there to go up another
+level. Hover it for the lead's role and profile.
+
+![The leader button](docs/herdr-org/media/leader-button.png)
+
+An agent you peek at has no button, because the peek bar is Herdr's own.
+Open it as a tab to get one.
+
+## Lead and crew marks
+
+These show whichever list you use.
+
+- **Tab bar.** A crew member's tab starts with `↳` and has dimmer text. A
+  lead's tab shows *Lead of N*, the number of agents under it at every
+  level, colored by the most urgent. Each tab shows its agent's role and
+  profile.
+- **Pane header.** A crew member's header is tinted and has the button
+  back to its lead. A lead's header shows *Lead of N*.
+- **Status bar.** The same mark for the agent you're focused on.
+
+## Crews in the Spaces list
+
+A crew shares its lead's space, unless the lead put it in another space
+with the `herdr.space` label. Pick how the Spaces list shows crews in the
+sort menu in the Agents header, or run the command from Herdr's command
+palette:
+
+| Mode | Command | What you see |
+|---|---|---|
+| Follow selected space (default) | `mothership-agents.follow` | The Agents list shows only the selected space's agents, with their crews under them. Org is not filtered. |
+| Tree in Spaces | `mothership-agents.tree` | A space row shows its crew count and most urgent status. Click it to list the crew under the row. |
+| Dots in Spaces | `mothership-agents.dots` | A dot for each crew member, up to six, then a count. Click for a card with each one's status and report. |
+| Agents tab | `mothership-agents.tab` | A count on the space row. Click it to open an Agents tab with a card per crew member and the last lines of its screen. |
+| Off | `mothership-agents.off` | Herdr's own behavior. |
+
+## Commands and search
+
+Run these from Herdr's command palette, or bind them to keys in
+`~/.config/herdr-app/keys.json`, for example
+`"global": { "cmd-shift-m": "mothership-agents.next" }`.
+
+| Command | What it does |
+|---|---|
+| `mothership-agents.org` | Sort the Agents list as the org. |
+| `mothership-agents.org-scope` | Switch between Leaders and All. |
+| `mothership-agents.next` | Go to the next Spaces mode. |
+| `agent.next`, `agent.prev` | Go to the next or previous agent, in the order shown. |
+
+### Search
+
+| You type | Keeps |
+|---|---|
+| `review` | name, terminal ID, role, profile or folder contains `review` |
+| `role:worker` | role contains `worker` |
+| `profile:poteto` | profile contains `poteto` |
+| `harness:codex`, `machine:vps`, `status:blocked` | that field contains the value |
+| `role:worker role:reviewer` | either role (the same key twice is OR) |
+| `role:worker profile:poteto api` | all three (different keys and words are AND) |
+| `profile:"two words"` | a value with spaces |
+
+A row stays when it, or an agent in its crew, matches.
+
+## Installing some of it
+
+`make install` installs everything. To install only some pieces, name
+them; `make -n <name>` shows what a name would install without doing it.
 
 ```sh
 make mothership-agents mothership-pane
@@ -29,50 +169,33 @@ make mothership-agents mothership-pane
 
 | Name | What it adds | Also installs |
 |---|---|---|
-| `mothership-agents` | The Agents list: the Org view, the sub-agent mode menu and Follow mode. | |
-| `mothership-pane` | The pane header: tags, *Lead of N*, the leader button. | |
-| `mothership-tabs` | The tab bar: tags, the `↳` and *Lead of N* marks. | |
-| `mothership-status` | The status bar: the focused terminal's mark. | |
-| `mothership-spaces` | The Spaces list: the Tree, Dots and Agents tab modes. | `mothership-agents` (it has the mode menu), `mothership-crew` |
+| `mothership-agents` | The Agents list: Org, the crew modes and Follow. | |
+| `mothership-pane` | The pane header: labels, *Lead of N*, the button back to the lead. | |
+| `mothership-tabs` | The tab bar: labels, `↳` and *Lead of N*. | |
+| `mothership-status` | The status bar mark. | |
+| `mothership-spaces` | The Spaces list: the Tree, Dots and Agents tab modes. | `mothership-agents`, `mothership-crew` |
 | `mothership-crew` | The Agents tab that the Agents tab mode opens. | |
 | `launcher` | `herdr-org-launch` in `~/.local/bin`. | |
-| `plugin` | The `hc-context` plugin, in the harnesses you choose (below). | |
+| `plugin` | The `hc-context` plugin, in the agent apps you choose. | |
 
-The Makefile's prerequisite lines are the dependency list; `make -n <name>`
-shows what a name would install without doing it.
+Most of these replace a Herdr panel of the same job in a layout called
+`mothership`, which `make` copies from your `main` layout the first time.
+Panels you don't install stay Herdr's own, and `make` switches the window
+to `mothership`. `layout.switch` (`cmd-shift-l` on macOS) switches
+layouts.
 
-Each mod:
+`make` copies each mod into `~/.config/herdr-app/mods/`. It stops rather
+than replace a folder there that it did not install.
 
-1. Is copied into `~/.config/herdr-app/mods/<name>/` and checked with
-   `herdr-app check`. `make` stops rather than replace a folder there that
-   it did not install (one without a `.mothership` file).
-2. Takes the place of the Herdr mod it was cloned from in your `mothership`
-   layout. `make` creates `mothership` from Herdr's `main` the first time, so
-   the panels you did not install stay Herdr's own. It also sets the
-   layout's Settings picture.
-3. Switches the window to `mothership`.
-
-`layout.switch` (`cmd-shift-l` on macOS) switches layouts, so `main` is
-one key away. To drop a mod later, see [Uninstall](#uninstall).
-
-`make plugin` looks for Claude Code, Codex, Grok Build, `agy` and pi on
-`PATH`, and skips any that already have `hc-context`. In a terminal it asks
-for each one; Enter means yes. Without a terminal, as when an agent runs
-`make`, it installs into all of them. `HARNESSES` names the ones you want
-and skips the questions:
+To pick agent apps without being asked, name them:
 
 ```sh
 make plugin HARNESSES="claude pi"
 ```
 
-After you edit a mod here, run `make install` again. Herdr reloads a mod, in every
-pane and panel that shows it, when a file in `~/.config/herdr-app/mods/`
-changes. It does not see changes made through a link, so `make` copies.
-Edit the files here, not the copies.
-
-Codex runs a new or changed plugin hook only after you trust it. After the
-first install, and after a change to `plugins/hc-context/hooks/codex.json`,
-open `codex` and trust the `hc-context` hook.
+When `make` runs without a terminal, as when an agent runs it, it installs
+into every app it finds unless `HARNESSES` says otherwise. It skips apps
+that already have this repo's `hc-context`.
 
 ### Moving from agent-files
 
@@ -95,8 +218,8 @@ Then run `make install`.
 make uninstall
 ```
 
-removes everything `make` installs. To remove one piece, put `uninstall-` in
-front of its name:
+removes everything `make` installs. Like `make`, it needs Herdr open. To
+remove one piece, put `uninstall-` in front of its name:
 
 ```sh
 make uninstall-mothership-pane uninstall-plugin
@@ -104,177 +227,48 @@ make uninstall-mothership-pane uninstall-plugin
 
 | Name | What it removes |
 |---|---|
-| `uninstall-layout` | Switches the window to `main`, then deletes the `mothership` layout and its picture. |
-| `uninstall-<mod>` | The mod's folder, if it holds a `.mothership` file, and puts Herdr's own mod back in its block of the `mothership` layout. Removing `mothership-agents` or `mothership-crew` also removes `mothership-spaces`, which needs them. |
-| `uninstall-launcher` | `~/.local/bin/herdr-org-launch`, if it points into this clone. |
-| `uninstall-plugin` | `hc-context` and this repo's marketplace from each harness that has it. `HARNESSES` limits it to the ones you name. |
+| `uninstall-layout` | Switches the window to `main`, then deletes the `mothership` layout. |
+| `uninstall-<mod>` | That mod, putting Herdr's own panel back where it replaced one. Removing `mothership-agents` or `mothership-crew` also removes `mothership-spaces`, which needs them. |
+| `uninstall-launcher` | `~/.local/bin/herdr-org-launch`, if it points into this folder. |
+| `uninstall-plugin` | `hc-context` from each agent app that has it. `HARNESSES` limits it to the ones you name. |
 
-`make uninstall` removes the layout first, so the window is on `main` before
-the mods go. Like `make`, it needs Herdr open.
+## Developing
 
-## The Org view
+Edit the files here, not the copies in `~/.config/herdr-app/mods/`. After
+editing `shared/`, run `make sync`; then run `make install`. Herdr reloads
+a mod when its files in `~/.config/herdr-app/mods/` change. It does not
+follow links, so `make` copies.
 
-Choose **Org** in the sort menu at the right of the Agents header, or run
-`mothership-agents.org`.
-
-- **Leaders | All.** A leader is an agent with no parent, or any terminal
-  whose agents it started are still running. Leaders shows only leaders,
-  nested at any depth. All shows every agent under its leader.
-- **Status.** Each row's badge is that agent's own status, as in Priority:
-  `!` needs you, a blue dot for done, a spinner for working, a ring for
-  idle. A leader whose reports are hidden or folded shows their count in
-  the color of the most urgent status anywhere in its team; hover it for
-  the breakdown, such as "3 reports · team: 1 needs you, 2 working".
-- **Order.** Whatever needs you comes first, then done, then working, then
-  idle, as in Priority. A row ranks by its own status or its team's,
-  whichever is more urgent, at every depth, so the path to the agent that
-  needs you is at the top. Rows that rank the same keep their order.
-  `agent.next` and `agent.prev` follow the rows as shown.
-  `mothership-agents.org-scope` flips the two, so you can bind it to a key.
-- **Rows.** Each row shows the agent's role and profile, `worker · poteto`.
-  Only the labels that are set show; an untagged agent shows none. A
-  top-level agent is named by where it shows, `acme-api / 1`. Click a row
-  to focus its pane, or to peek at a sub-agent that has none. The chevron
-  folds a leader.
-- **Search.** The box filters the tree. A row stays when it or a row under
-  it matches.
-
-| You type | Keeps |
-|---|---|
-| `review` | name, address, role, profile or folder contains `review` |
-| `role:worker` | role contains `worker` |
-| `profile:poteto` | profile contains `poteto` |
-| `harness:codex`, `machine:vps`, `status:blocked` | that field contains the value |
-| `role:worker role:reviewer` | either role (the same key twice is OR) |
-| `role:worker profile:poteto api` | all three (different keys and words are AND) |
-| `profile:"two words"` | a value with spaces |
-
-The filter button lists every value in the tree with a count. Ticking one
-adds its term to the search; unticking removes it.
-
-![A search](docs/herdr-org/media/search.png)
-
-## Roles and profiles
-
-Both are hc labels on the terminal: `org.role` and `org.profile`.
-
-- **Role.** The agent that starts a sub-agent sets it:
-
-  ```sh
-  hc run --bg --name fix --label org.role=worker -- herdr-org-launch poteto claude "Fix x.rs"
-  ```
-
-  Change it later with `hc label fix org.role=reviewer`.
-- **Profile.** The agent tags itself when it starts. The `hc-context`
-  plugin's start hook runs `hc label "$HC_TERMINAL_ID" org.profile="$HC_PROFILE"`
-  when `HC_PROFILE` is set. Set it in your shell
-  (`alias poteto='HC_PROFILE=poteto claude'`), in a template's `command`,
-  or with the launcher.
-- **Launcher.** `herdr-org-launch <profile> <command>` sets `HC_PROFILE`,
-  tags the profile and runs the command in its place. Use it for a child,
-  because `hc run` does not pass your environment to the child, and for a
-  harness whose hook cannot run.
-- **Agents that know their profile.** The plugin also asks each agent to
-  tag itself when `HC_PROFILE` is unset and a skill or its task gave it a
-  profile. That depends on the model following the message.
-
-The plugin's message tells every agent the spawn form above, so agents tag
-their children's roles without being asked.
-
-## Take me to your leader
-
-A sub-agent's pane header starts with an alien and *Sub-agent of
-`<leader>`*. Click it to show the leader; click again there to go up one
-more level. Hover it for the leader's role and profile.
-
-![The leader button](docs/herdr-org/media/leader-button.png)
-
-A sub-agent you peek at has no button, because the peek bar is Herdr's own
-mod. Keep it as a tab to get one.
-
-## Sub-agent modes
-
-Sub-agents are the terminals an agent starts with `hc run`. A sub-agent
-belongs to the space of the agent that started it, unless that agent put it
-in another space with the `herdr.space` label.
-
-Pick a mode in the sort menu in the Agents header, or run a command:
-
-| Mode | Command | What you see |
-|---|---|---|
-| Follow selected space (default) | `mothership-agents.follow` | The Agents list shows only the selected space's agents, with their sub-agents under them. |
-| Tree in Spaces | `mothership-agents.tree` | A space row shows its sub-agent count and most urgent status. Click it to list the sub-agents under the row. |
-| Dots in Spaces | `mothership-agents.dots` | One dot per sub-agent on its space row. Click the dots for a card with each one's status and report. |
-| Agents tab | `mothership-agents.tab` | A count on the space row. Click it to open an Agents tab with a card per sub-agent and the last lines of its screen. |
-| Off | `mothership-agents.off` | Herdr's own behavior. |
-
-`mothership-agents.next` goes to the next mode. To bind it to a key, add it to
-`~/.config/herdr-app/keys.json`, for example
-`"global": { "cmd-shift-m": "mothership-agents.next" }`.
-
-## Sub-agent and lead marks
-
-These show in every mode, Off included.
-
-- Tab bar: a tab whose agent is a sub-agent starts with `↳` and has dimmer
-  text. A tab whose agent has sub-agents shows *Lead of N*, colored by the
-  most urgent sub-agent. Each tab shows its agent's role and profile.
-- Pane header: a sub-agent's header is tinted and has the leader button. A
-  lead's header shows *Lead of N*. Each header shows the role and profile.
-- Status bar: the same label for the terminal that has focus.
-- Agents list: the row of the sub-agent you are looking at is highlighted,
-  and its lead's row lightly.
-
-## What is in this repo
-
-- `Makefile` and `scripts/`: install and uninstall. `scripts/swap-layout.py`
-  puts a mod in the place of the Herdr mod it was cloned from, and back.
-  `scripts/plugin.sh` holds each harness's install, uninstall and
-  "already installed?" commands.
-- `layouts/mothership.json`: the full layout, a clone of Herdr's `main` 0.1.12
-  with every mod swapped in, for herdr.dev. `make` builds yours from `main`
-  instead, so it holds only the mods you install.
-- `mods/`: clones of Herdr's 0.1.12 mods. `mothership-agents` (`agents`) has
-  the Org view, the modes and the Follow filter. `mothership-spaces` (`spaces`)
-  has the Tree, Dots and Agents tab chips. `mothership-tabs` (`tabs`),
-  `mothership-pane` (`pane`) and `mothership-status` (`workspace-status`) have the
-  marks. `mothership-crew` is the Agents tab; it reads each sub-agent's screen
-  and branch every 5 seconds, only while the tab is in front.
-- `shared/`: `subagents.js` (parents, sub-agent trees, marks) and `org.js`
-  (the org tree, search, filter values, tag text). Herdr loads only files
-  inside a mod's own folder, so each mod folder holds a copy of the ones it
-  imports. Edit them in `shared/`, then run `make sync` to update the
-  copies. `bun run check` fails if a copy differs from `shared/`.
+- `mods/`: copies of Herdr 0.1.12's own panels, changed.
+  `mothership-agents` (from `agents`) has Org, the modes and Follow.
+  `mothership-spaces` (from `spaces`) has the Tree, Dots and Agents tab
+  chips. `mothership-tabs` (`tabs`), `mothership-pane` (`pane`) and
+  `mothership-status` (`workspace-status`) have the marks.
+  `mothership-crew` is new: the Agents tab. It reads each crew member's
+  screen and branch every 5 seconds, only while the tab is in front.
+- `shared/`: code more than one mod uses. Herdr loads only files inside a
+  mod's own folder, so each mod holds a copy; `make sync` updates them.
 - `plugins/hc-context/`: the plugin, with a manifest and hook for each
-  harness. Moved from hassox/agent-files at commit `45c89c3`.
+  agent app.
 - `bin/herdr-org-launch`: the launcher.
-- `docs/herdr-org/`: the discovery notes, the design and the media.
-- `RECIPE.md` and `preview.png`: the listing for herdr.dev.
+- `Makefile` and `scripts/`: install and uninstall.
+- `layouts/mothership.json`: the full layout, for herdr.dev.
+- `docs/herdr-org/`: the design notes and media.
+- `RECIPE.md` and `preview.png`: the herdr.dev listing.
 
-Clones do not get Herdr's updates. When Herdr ships a new version of one
-of them, clone it again and move these changes onto the new copy.
+Copies don't get Herdr's updates. When Herdr ships a new version of one
+of these panels, copy it again and move these changes onto it.
 
-## Tests
+### Tests
 
 ```sh
 bun run check
 ```
 
-It runs `herdr-app check` on every mod,
-then `bun test`. The tests need `hc`, `herdr-app` and `bun`, and no model
-keys:
-
-- `test/org.test.js`, `test/filter.test.js`: the org tree, the leader
-  rule, untagged agents, search and filter values.
-- `test/render.test.js`: renders the real mods against stubbed `herdr`
-  and `gpui-kit` modules and checks rows, tags, folding, the scope toggle,
-  the search box, the filter popup and the leader button.
-- `test/self-tag.test.js`, `test/spawn.test.js`, `test/persist.test.js`,
-  `test/live.test.js`: start their own scratch hc core under `/tmp` (never
-  yours) with fake agents (`test/fake-agent.sh`). They check self-tagging
-  through the hook, the launcher and the pi extension, role tagging on
-  spawn, labels across a core restart, and that a label change, a new
-  child and an ended child reach the rendered view from the event stream.
+It checks every mod with `herdr-app check`, then runs `bun test`. The
+tests need `hc`, `herdr-app` and `bun`, and no model keys. The tests that
+run agents use their own scratch `hc` under `/tmp`, never yours, with fake
+agents.
 
 To run the checks before each commit:
 
