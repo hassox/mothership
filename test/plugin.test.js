@@ -23,7 +23,8 @@ function harnesses(present, installed = []) {
   for (const h of installed) writeFileSync(join(dir, `${h}.list`), LISTED[h]);
   if (!installed.includes("codex")) writeFileSync(join(dir, "codex.list"), "hc-context@hassox-mothership  not installed\n");
   const run = (action, env = {}, stdin) => {
-    const argv = stdin == null ? ["sh", "scripts/plugin.sh", action] : ["sh", "-c", `{ printf '%s' "$ANSWERS"; sleep 2; } | script -q /dev/null sh scripts/plugin.sh ${action}`];
+    const tty = process.platform === "darwin" ? `script -q /dev/null sh scripts/plugin.sh ${action}` : `script -q -c 'sh scripts/plugin.sh ${action}' /dev/null`;
+    const argv = stdin == null ? ["sh", "scripts/plugin.sh", action] : ["sh", "-c", `{ printf '%s' "$ANSWERS"; sleep 2; } | ${tty}`];
     const r = Bun.spawnSync(argv, { cwd: ROOT, env: { PATH: `${bin}:/usr/bin:/bin`, FAKE_DIR: dir, ANSWERS: stdin ?? "", ...env }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
     const log = (() => { try { return readFileSync(join(dir, "log"), "utf8"); } catch { return ""; } })();
     return { code: r.exitCode, out: r.stdout.toString(), changes: log.split("\n").filter((l) => l && !/ list$/.test(l)) };
