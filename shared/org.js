@@ -15,7 +15,7 @@ export function tagText(k) {
   return [label(k, "org.role"), label(k, "org.profile")].filter(Boolean).join(" · ") || null;
 }
 
-export function orgTree(all, scope, listed = new Map()) {
+export function orgTree(all, listed = new Map()) {
   const live = new Set(all.filter((k) => k.state === "live").map((k) => k.address));
   const by = kidsByParent(all, false);
   const node = (k, top) => {
@@ -42,12 +42,10 @@ export function orgTree(all, scope, listed = new Map()) {
       leader: kids.length > 0 || (top && isAgent(k)),
     };
   };
-  const leadersOnly = (n) => ({ ...n, kids: n.kids.filter((c) => c.leader).map(leadersOnly) });
-  const roots = byUrgency(all
+  return byUrgency(all
     .filter((k) => k.state === "live" && !live.has(parentOf(k)))
     .map((k) => node(k, true))
     .filter((n) => n.leader));
-  return scope === "all" ? roots : roots.map(leadersOnly);
 }
 
 export function facets(roots) {

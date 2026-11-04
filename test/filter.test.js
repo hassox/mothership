@@ -3,7 +3,7 @@ import { orgTree, filterTree, parseQuery, toggleTerm } from "../shared/org.js";
 import { all } from "./fixture.js";
 
 const kept = (nodes) => nodes.flatMap((n) => [`${n.address}${n.match ? "" : "~"}`, ...kept(n.kids)]);
-const run = (q, scope = "all") => kept(filterTree(orgTree(all, scope), q));
+const run = (q) => kept(filterTree(orgTree(all), q));
 
 describe("F6 search and filter", () => {
   test("an empty query keeps the whole tree, all matching", () => {
@@ -41,11 +41,7 @@ describe("F6 search and filter", () => {
   test("an unknown key is a bare word, and a missing field never matches its key", () => {
     expect(run("foo:bar")).toEqual([]);
     expect(parseQuery("foo:bar").words).toEqual(["foo:bar"]);
-    expect(run("role:e", "all").includes("t6")).toBe(false);
-  });
-
-  test("the leaders scope filters its own tree", () => {
-    expect(run("profile:poteto", "leaders")).toEqual(["t1", "t6"]);
+    expect(run("role:e").includes("t6")).toBe(false);
   });
 
   test("toggleTerm adds a term, then removes it, leaving the rest", () => {

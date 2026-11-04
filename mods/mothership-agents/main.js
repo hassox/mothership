@@ -73,6 +73,8 @@ export default class Agents extends View {
     this.search = InputState.new({ placeholder: "Search, or role:  profile:", value: shared("org.filter") ?? "" });
     this.search.on("change", () => setShared("org.filter", this.search.value()));
     this.folded = new Set();
+    this.orgFolded = new Set();
+    this.expanded = new Set();
     // Each agent's last state and when it changed (ms), kept across restarts.
     this.changed = JSON.parse(localStorage.getItem("changed") ?? "{}");
     this.pendingPins = JSON.parse(localStorage.getItem("pins") ?? "[]");
@@ -183,7 +185,7 @@ export default class Agents extends View {
   filterMenu(t) {
     const q = shared("org.filter") ?? "";
     const on = parseQuery(q);
-    const f = facets(orgTree(terminals(), scopeOf().id, new Map(agents().map((a) => [a.address, a.status]))));
+    const f = facets(orgTree(terminals(), new Map(agents().map((a) => [a.address, a.status]))));
     const shown = KEYS.filter((key) => f[key].size);
     return v_flex()
       .id("filter-menu")
@@ -223,6 +225,15 @@ export default class Agents extends View {
       .when(l === "└" || l === "├", (el) => el.border_b(1.5).rounded_bl(6)));
   }
 
+  orgOpen(address) {
+    return scopeOf().id === "leaders" ? this.expanded.has(address) : !this.orgFolded.has(address);
+  }
+
+  orgToggle(address) {
+    const set = scopeOf().id === "leaders" ? this.expanded : this.orgFolded;
+    set.has(address) ? set.delete(address) : set.add(address);
+  }
+
   orgRows(t, roots, shown) {
     const rows = [];
     const order = [];
@@ -230,7 +241,7 @@ export default class Agents extends View {
       const last = i === nodes.length - 1;
       order.push(n.address);
       rows.push(this.orgRow(t, n, lead ? [...lead, last ? "└" : "├"] : [], shown));
-      if (n.kids.length && !this.folded.has(`org:${n.address}`)) walk(n.kids, lead ? [...lead, last ? "" : "│"] : []);
+      if (n.kids.length && this.orgOpen(n.address)) walk(n.kids, lead ? [...lead, last ? "" : "│"] : []);
     });
     walk(roots, null);
     setAgentOrder(order);
@@ -241,7 +252,7 @@ export default class Agents extends View {
     const k = n.t;
     const pic = icon(k.program, 14, t.foreground);
     const on = n.address === shown;
-    const open = !this.folded.has(`org:${n.address}`);
+    const open = this.orgOpen(n.address);
     const tag = tagText(k);
     const pane = panes().find((p) => p.terminal === n.address);
     return h_flex()
@@ -262,14 +273,14 @@ export default class Agents extends View {
         .when(n.kids.length > 0, (el) => el.text_color(t.dim).hover((el) => el.bg(t.hover).text_color(t.foreground))
           .on_click((_e, cx) => {
             cx.stop_propagation();
-            open ? this.folded.add(`org:${n.address}`) : this.folded.delete(`org:${n.address}`);
+            this.orgToggle(n.address);
             cx.notify();
           })
           .child(svg(`mods/workspace-chrome/chevron-${open ? "down" : "right"}.svg`).size(11))))
       .when(Boolean(pic), (el) => el.child(div().mr(7).child(pic)))
       .child(div().flex_1().min_w(0).truncate().text_color(n.match === false ? t.dim : on || n.kids.length ? t.foreground : t.muted).child(n.name))
       .when(Boolean(tag), (el) => el.child(div().flex_none().max_w(130).ml(6).truncate().text_size(11).text_color(t.dim).child(tag)))
-      .when((n.kids.length > 0 && !open) || n.reports > n.kids.length, (el) => el.child(div()
+      .when(n.kids.length > 0 && (!open || scopeOf().id === "leaders"), (el) => el.child(div()
         .id(`org-team-${n.address}`)
         .flex_none()
         .ml(6)
@@ -557,7 +568,7 @@ export default class Agents extends View {
           .child(svg("mods/workspace-chrome/chevron-right.svg").size(11).flex_none().text_color(t.dim)));
     };
     const isOrg = sort.id === "org" && !collapsed;
-    const org = isOrg ? filterTree(orgTree(all, scopeOf().id, this.listed), shared("org.filter") ?? "") : [];
+    const org = isOrg ? filterTree(orgTree(all, this.listed), shared("org.filter") ?? "") : [];
     const rows = isOrg
       ? this.orgRows(t, org, shown)
       : collapsed
@@ -565,7 +576,7 @@ export default class Agents extends View {
         : groups.flatMap((g) => [header(g), ...(this.folded.has(g.id) ? [] : g.members.flatMap(withKids))]);
     const count = (nodes) => nodes.reduce((n, x) => [n[0] + (x.leader ? 1 : 0), n[1] + 1].map((v, i) => v + count(x.kids)[i]), [0, 0]);
     const [leads, members] = count(org);
-    const shownAs = scopeOf().id === "leaders" ? `${leads} leaders` : `${leads} leaders · ${members} agents`;
+    const shownAs = scopeOf().id === "leaders" ? `${org.length} leaders` : `${leads} leaders · ${members} agents`;
     const orgEmpty = (shared("org.filter") ?? "").trim() ? "Nothing matches." : "No agents.";
 
     return v_flex()

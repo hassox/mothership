@@ -74,15 +74,40 @@ describe("F5 display", () => {
     expect(count._props.tooltip[0]).toBe("2 reports · team: 1 needs you, 1 working, 2 idle");
   });
 
-  test("the Leaders scope shows only leaders, with a count of each leader's reports", () => {
+  test("Leaders starts with every crew folded; opening a lead shows its whole crew, and sub-leads open further", () => {
     const { tree } = sidebar();
     click(findId(tree(), "org-scope-leaders"));
     expect(state.shared["org.scope"]).toBe("leaders");
-    const t = tree();
-    expect(rowIds(t)).toEqual(["t1", "t2", lone.address, "vps/t2"]);
-    expect(texts(findId(t, "org-t2"))).toContain("2");
-    click(findId(t, "org-scope-all"));
-    expect(rowIds(tree())).toContain("t3");
+    expect(rowIds(tree())).toEqual(["t1", lone.address, "vps/t2"]);
+    expect(texts(findId(tree(), "org-team-t1"))).toEqual(["2"]);
+    click(findId(tree(), "org-fold-t1"));
+    const open = tree();
+    expect(rowIds(open)).toEqual(["t1", "t2", "t5", lone.address, "vps/t2"]);
+    expect([texts(findId(open, "org-team-t1")), texts(findId(open, "org-team-t2")), findId(open, "org-team-t5")]).toEqual([["2"], ["2"], null]);
+    expect(state.order).toEqual(rowIds(open));
+    click(findId(open, "org-fold-t2"));
+    expect(rowIds(tree())).toEqual(["t1", "t2", "t3", "t4", "t5", lone.address, "vps/t2"]);
+    click(findId(tree(), "org-fold-t1"));
+    expect(rowIds(tree())).toEqual(["t1", lone.address, "vps/t2"]);
+  });
+
+  test("All starts open and keeps its own folds apart from Leaders", () => {
+    const { tree } = sidebar();
+    click(findId(tree(), "org-fold-t2"));
+    click(findId(tree(), "org-scope-leaders"));
+    click(findId(tree(), "org-fold-vps/t2"));
+    expect(rowIds(tree())).toEqual(["t1", lone.address, "vps/t2", "vps/t3"]);
+    click(findId(tree(), "org-scope-all"));
+    expect(rowIds(tree())).toEqual(["t1", "t2", "t5", "t6", "vps/t2", "vps/t3"]);
+  });
+
+  test("a lead that arrives later starts folded in Leaders", () => {
+    state.shared["org.scope"] = "leaders";
+    const { tree } = sidebar();
+    tree();
+    state.terminals = [...all, { ...lone, address: "t40", name: "new" }, { ...lone, address: "t41", parent: "t40" }];
+    expect(rowIds(tree())).toContain("t40");
+    expect(rowIds(tree())).not.toContain("t41");
   });
 
   test("typing in the search box filters the tree", () => {

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { scratchCore, FAKE } from "./core.js";
-import { state, cx, texts, findId } from "./preload.js";
+import { state, cx, texts, findId, click } from "./preload.js";
 import Agents from "../mods/mothership-agents/main.js";
 
 const core = scratchCore();
@@ -69,11 +69,13 @@ afterAll(() => {
   core.stop();
 });
 
-test("F7 a label change, a new child and an ended child each reach the Org view without a reload", async () => {
+test("F7 a label change, a new child and an ended child each reach the Org view without a reload, and a sub-lead whose crew ends stays in its lead's crew", async () => {
   const lead = run("--name", "lead", "--", FAKE, "claude-code", "idle");
   const sub = run("--name", "sub", "--parent", lead, "--label", "org.role=sub-lead", "--label", "org.profile=poteto", "--", FAKE, "codex", "idle");
   const worker = run("--name", "worker", "--parent", sub, "--", FAKE, "pi", "working");
-  await timeUntil((row) => row(sub));
+  await timeUntil((row) => row(`team-${lead}`));
+  click(rows()(`fold-${lead}`));
+  await timeUntil((row) => row(`team-${sub}`));
 
   const relabel = [];
   for (const role of ["reviewer", "sub-lead", "reviewer", "sub-lead", "reviewer"]) {
@@ -86,7 +88,7 @@ test("F7 a label change, a new child and an ended child each reach the Org view 
   run("--name", "second", "--parent", lead, "--", FAKE, "pi", "idle");
   const startMs = await started;
 
-  const ended = timeUntil((row) => row(sub) === null);
+  const ended = timeUntil((row) => row(sub) && !row(`team-${sub}`));
   core.json("kill", worker);
   const endMs = await ended;
 

@@ -64,9 +64,10 @@ no tag text at all.
 ## How it behaves
 
 - **Leaders.** A leader is a live agent with no live parent, or any
-  terminal with live children. The Leaders scope shows only leaders,
-  nested at any depth, each with its count of direct reports. All shows
-  every agent under its leader.
+  terminal with live children. Leaders starts with every crew folded, so
+  only the top-level leads show, each with the size of its crew. Opening a
+  lead shows every agent it started; a crew member with its own crew opens
+  further. All starts with every crew open, and keeps its own folds.
 - **Status.** Working: a spinning ring in `working`. Needs you (blocked): a
   `!` in `blocked`. Done (finished while you were not looking): a filled
   dot in `done`. Idle: an open ring. A leader's count takes the color of

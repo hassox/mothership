@@ -63,8 +63,8 @@ keeps leading with no children.
 
 | Scope | Shows |
 |---|---|
-| Leaders | only leaders: each top-level agent, and under it the sub-agents that lead others, at any depth. Each row shows its count of direct reports, colored by the most urgent one, including the reports the scope hides. |
-| All | every top-level agent with its full subtree. |
+| Leaders | every top-level agent, with its crew folded. Opening a leader shows every agent it started; a crew member with its own crew opens further. Each leader shows its count of direct reports, colored by the most urgent agent below it, open or folded. |
+| All | every top-level agent with its full subtree, open. It keeps its own folds. |
 
 A plain shell outside any tree is in neither scope.
 

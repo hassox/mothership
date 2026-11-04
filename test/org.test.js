@@ -5,45 +5,42 @@ import { all, shell, lone, notes, remoteKid } from "./fixture.js";
 const shape = (nodes) => nodes.map((n) => [n.address, ...(n.kids.length ? [shape(n.kids)] : [])]);
 
 describe("F3 nested leaders", () => {
-  test("leaders scope keeps only leaders: top-level agents and sub-agents with children", () => {
-    expect(shape(orgTree(all, "leaders"))).toEqual([["t1", [["t2"]]], ["t6"], ["vps/t2"]]);
-  });
-
-  test("all scope keeps every agent, each leader with its full subtree, and leaves plain shells out", () => {
-    expect(shape(orgTree(all, "all"))).toEqual([
+  test("the tree holds every agent under its leader, and leaves plain shells out", () => {
+    expect(shape(orgTree(all))).toEqual([
       ["t1", [["t2", [["t3"], ["t4"]]], ["t5"]]],
       ["t6"],
       ["vps/t2", [["vps/t3"]]],
     ]);
   });
 
-  test("a leader counts its direct reports, including the ones the leaders scope hides", () => {
-    const [prime] = orgTree(all, "leaders");
+  test("a leader counts its direct reports; a crew member with its own crew leads too", () => {
+    const [prime] = orgTree(all);
     expect([prime.leader, prime.reports]).toEqual([true, 2]);
-    expect([prime.kids[0].address, prime.kids[0].leader, prime.kids[0].reports]).toEqual(["t2", true, 2]);
-    expect(orgTree(all, "all")[0].kids.map((k) => [k.address, k.leader])).toEqual([["t2", true], ["t5", false]]);
+    expect(prime.kids.map((k) => [k.address, k.leader, k.reports])).toEqual([["t2", true, 2], ["t5", false, 0]]);
   });
 
-  test("a top-level agent stays a leader with no children; a sub-agent stops leading when its last child ends", () => {
+  test("a top-level agent stays a leader with no crew; a sub-lead whose crew ends stays in its lead's crew", () => {
     const finished = all.map((k) => (k.parent === "t2" && !k.address.includes("/") ? { ...k, state: "finished" } : k));
-    expect(shape(orgTree(finished, "leaders"))[0]).toEqual(["t1"]);
+    const [prime] = orgTree(finished);
+    expect(shape([prime])).toEqual([["t1", [["t2"], ["t5"]]]]);
+    expect([prime.kids[0].leader, prime.kids[0].reports]).toEqual([false, 0]);
     const solo = [{ ...lone, address: "t9" }, { ...notes, address: "t10", parent: "t9", state: "finished" }];
-    expect(orgTree(solo, "leaders").map((n) => [n.address, n.leader, n.reports])).toEqual([["t9", true, 0]]);
+    expect(orgTree(solo).map((n) => [n.address, n.leader, n.reports])).toEqual([["t9", true, 0]]);
   });
 
   test("a sub-agent whose parent ended is top-level, so it leads", () => {
     const orphan = all.map((k) => (k.address === "t1" ? { ...k, state: "finished" } : k));
-    expect(orgTree(orphan, "leaders").map((n) => n.address)).toEqual(["t2", "t5", "t6", "vps/t2"]);
+    expect(orgTree(orphan).map((n) => n.address)).toEqual(["t2", "t5", "t6", "vps/t2"]);
   });
 
   test("a plain shell with agent children leads them; a lone plain shell is not in the org", () => {
     const sh = { ...shell, address: "t30" };
     const kid = { ...notes, address: "t31", parent: "t30" };
-    expect(orgTree([sh, kid, shell], "leaders").map((n) => n.address)).toEqual(["t30"]);
+    expect(orgTree([sh, kid, shell]).map((n) => n.address)).toEqual(["t30"]);
   });
 
   test("a remote child with a bare parent nests under the parent on its machine", () => {
-    const remote = orgTree(all, "all")[2];
+    const remote = orgTree(all)[2];
     expect(remote.machine).toBe("vps");
     expect(remote.kids[0].address).toBe("vps/t3");
   });
@@ -51,21 +48,21 @@ describe("F3 nested leaders", () => {
 
 describe("status", () => {
   test("a row's status is the agent's own, with the app's done kept", () => {
-    const [prime] = orgTree(all, "all", new Map([["t1", "done"]]));
+    const [prime] = orgTree(all, new Map([["t1", "done"]]));
     expect([prime.status, prime.kids[0].status, prime.kids[0].kids[0].status]).toEqual(["done", "idle", "blocked"]);
   });
 
   test("a leader's team status is the most urgent anywhere below it, with a tally", () => {
-    const [prime] = orgTree(all, "leaders");
+    const [prime] = orgTree(all);
     expect([prime.urgent, prime.tally]).toEqual(["blocked", { idle: 2, blocked: 1, working: 1 }]);
     expect([prime.kids[0].urgent, prime.kids[0].tally]).toEqual(["blocked", { blocked: 1, working: 1 }]);
-    const [, lone] = orgTree(all, "all");
+    const [, lone] = orgTree(all);
     expect([lone.urgent, lone.tally]).toEqual([null, {}]);
   });
 });
 
 describe("order", () => {
-  const roots = (listed) => orgTree(all, "all", new Map(Object.entries(listed))).map((n) => n.address);
+  const roots = (listed) => orgTree(all, new Map(Object.entries(listed))).map((n) => n.address);
 
   test("whatever needs you rises to the top, then done, then working, then idle", () => {
     expect(roots({})).toEqual(["t1", "t6", "vps/t2"]);
@@ -74,21 +71,21 @@ describe("order", () => {
   });
 
   test("a leader rises with its team, and siblings sort the same way at every depth", () => {
-    const [prime] = orgTree(all, "all", new Map([["t3", "idle"], ["t4", "idle"], ["t5", "blocked"]]));
+    const [prime] = orgTree(all, new Map([["t3", "idle"], ["t4", "idle"], ["t5", "blocked"]]));
     expect(prime.kids.map((k) => k.address)).toEqual(["t5", "t2"]);
-    const [lead] = orgTree(all, "all", new Map([["t3", "idle"], ["t4", "blocked"]]));
+    const [lead] = orgTree(all, new Map([["t3", "idle"], ["t4", "blocked"]]));
     expect(lead.kids[0].kids.map((k) => k.address)).toEqual(["t4", "t3"]);
   });
 
-  test("the leaders scope keeps the order its hidden reports earn", () => {
-    expect(orgTree(all, "leaders", new Map([["vps/t3", "blocked"], ["t3", "idle"]])).map((n) => n.address)).toEqual(["vps/t2", "t1", "t6"]);
+  test("a leader keeps the order its whole crew earns, at any depth", () => {
+    expect(orgTree(all, new Map([["vps/t3", "blocked"], ["t3", "idle"]])).map((n) => n.address)).toEqual(["vps/t2", "t1", "t6"]);
   });
 });
 
 describe("names", () => {
   test("a row is named by its terminal name, then where a top-level one is shown, then its program", () => {
     const where = { address: "t20", state: "live", status: "idle", report: {}, labels: { where: "prime / 1" }, program: { name: "Claude Code" } };
-    const names = orgTree([where, { ...where, address: "t21", parent: "t20" }, { ...where, address: "t22", parent: "t20", name: "fix" }], "all")[0];
+    const names = orgTree([where, { ...where, address: "t21", parent: "t20" }, { ...where, address: "t22", parent: "t20", name: "fix" }])[0];
     expect([names.name, ...names.kids.map((k) => k.name)]).toEqual(["prime / 1", "Claude Code", "fix"]);
   });
 });
@@ -96,7 +93,7 @@ describe("names", () => {
 describe("F4 untagged", () => {
   test("missing labels, report and status read as null, never a placeholder", () => {
     const bare = { address: "t11", state: "live", parent: "t5", status: undefined, report: undefined, labels: undefined };
-    const [notesNode] = orgTree([{ ...notes, parent: undefined }, bare], "all");
+    const [notesNode] = orgTree([{ ...notes, parent: undefined }, bare]);
     const pick = (n) => ({ role: n.role, profile: n.profile, harness: n.harness, status: n.status });
     expect(pick(notesNode)).toEqual({ role: null, profile: null, harness: "claude-code", status: "idle" });
     expect(pick(notesNode.kids[0])).toEqual({ role: null, profile: null, harness: null, status: null });
@@ -112,7 +109,7 @@ describe("F4 untagged", () => {
   });
 
   test("facets count set values and leave missing ones out", () => {
-    const f = facets(orgTree(all, "all"));
+    const f = facets(orgTree(all));
     expect(Object.fromEntries(f.role)).toEqual({ lead: 1, "sub-lead": 1, worker: 2, "two words": 1 });
     expect(Object.fromEntries(f.profile)).toEqual({ poteto: 3, reviewer: 1 });
     expect(Object.fromEntries(f.harness)).toEqual({ "claude-code": 4, codex: 1, pi: 2 });
